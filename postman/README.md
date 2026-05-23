@@ -2,7 +2,9 @@
 
 A fully wired Postman collection covering every HTTP endpoint across the 7 examples and 2 projects in this workshop. Import once, click "Send" on any request, see the response.
 
-**Stats:** 8 folders, 43 requests, 18 collection variables.
+**Stats:** 8 folders, 44 requests, 18 collection variables.
+
+> **About the `pause()` between demos in the Python clients:** that's a feature of the *client scripts* (so a presenter can step through demos with Enter). It doesn't affect Postman at all - you're already in a click-Send-when-ready workflow.
 
 ## Import
 
@@ -61,9 +63,9 @@ Example 04 -> `POST /webhooks/stripe (2) DUPLICATE delivery`. Click Send twice i
 
 Example 04 -> `POST /webhooks/stripe (4) FORGED event`. The hardcoded fake signature won't match what the server computes. Returns 401. This is the demo for why webhook signatures matter.
 
-### Watch SSE stream into Postman
+### Watch a REAL LLM stream into Postman
 
-Example 05 -> `POST /chat`. Click Send. The response body grows in real-time as the server streams ~50 word events back. Switch the response viewer to **Raw** to see the SSE wire format (`id:` / `event:` / `data:` / blank line, repeated).
+Example 05 -> `POST /chat`. Click Send. The response body grows in real-time as your backend relays each token from OpenAI's `gpt-4o-mini`. Switch the response viewer to **Raw** to see the SSE wire format (`id:` / `event:` / `data:` / blank line, repeated). Edit the request body to try your own prompts - the second request in the folder is set up for that.
 
 ### Subscribe to a live SSE feed and trigger events from another tab
 

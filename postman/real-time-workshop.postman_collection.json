@@ -874,8 +874,8 @@
       ]
     },
     {
-      "name": "05 - SSE - Mumbai food chat streaming (port 8105)",
-      "description": "Send a prompt; server streams the response back word-by-word over SSE. Postman will show the response body filling in over time.\n\nStart the server first:\n\n    cd examples/05_sse && uvicorn server:app --port 8105\n\nTip: in Postman, set the response viewer to 'Raw' to see the SSE wire format (id: / event: / data: / blank line, repeated).",
+      "name": "05 - SSE - real LLM stream relayed through your backend (port 8105)",
+      "description": "Send a prompt; your local backend calls OpenAI with stream=True and relays each chunk back to you as an SSE event. This is the exact pattern Vercel AI SDK uses: browser speaks to YOUR domain over SSE, your backend speaks to OpenAI over SSE. The API key never leaves your server.\n\nStart the server first:\n\n    cd examples/05_sse && uvicorn server:app --port 8105\n\nRequires OPENAI_API_KEY in ../../.env.\n\nTip: in Postman, set the response viewer to 'Raw' to see the SSE wire format (id: / event: / data: / blank line, repeated). Tokens will appear one at a time as the model generates them.",
       "item": [
         {
           "name": "GET /",
@@ -891,11 +891,11 @@
                 ""
               ]
             },
-            "description": "Info page."
+            "description": "Info page. Also confirms whether OPENAI_API_KEY is configured (openai_key_configured: true|false)."
           }
         },
         {
-          "name": "POST /chat  (stream response over SSE)",
+          "name": "POST /chat  (real LLM stream - 3 Mumbai street foods)",
           "request": {
             "method": "POST",
             "header": [
@@ -917,10 +917,45 @@
                 "chat"
               ]
             },
-            "description": "Server streams ~50 events (one per word) ~80ms apart. Postman will show the response body growing in real-time. Each event is id:N\\nevent:token\\ndata:{...}\\n\\n - the SSE wire format.",
+            "description": "Real call to OpenAI gpt-4o-mini, streamed through your backend. Postman will show the response body growing in real-time as the model generates each token. Watch the events:\n\n  event: open    once at the start, payload includes prompt + model\n  event: token   one per chunk, payload is {text, index}\n  event: done    once at the end, payload is {token_count}\n\nIf you see event: error instead, OPENAI_API_KEY is missing or invalid.",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"prompt\": \"What are 3 must-try Mumbai street foods?\"\n}",
+              "raw": "{\n  \"prompt\": \"What are 3 must-try Mumbai street foods? One short paragraph per dish.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "POST /chat  (real LLM stream - custom prompt)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "content-type",
+                "value": "application/json"
+              },
+              {
+                "key": "accept",
+                "value": "text/event-stream"
+              }
+            ],
+            "url": {
+              "raw": "{{base_8105}}/chat",
+              "host": [
+                "{{base_8105}}"
+              ],
+              "path": [
+                "chat"
+              ]
+            },
+            "description": "Same endpoint with a different prompt. Edit the body to try your own prompts and watch them stream back live.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"prompt\": \"Recommend a cheap vegetarian dinner under 300 INR in Bengaluru.\"\n}",
               "options": {
                 "raw": {
                   "language": "json"

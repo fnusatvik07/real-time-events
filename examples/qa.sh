@@ -91,9 +91,11 @@ else
     fail "server did not start (see $LOGS/01.log)"
 fi
 OUT=$(cd "$HERE/01_http_basics" && $PYTHON client.py 2>&1)
-assert_contains "client received hit_number"          "$OUT" "hit_number"
-assert_contains "client received echo uppercase"      "$OUT" "REAL-TIME WORKSHOP"
-assert_contains "client printed 3 sample requests"    "$OUT" "Request 1" "Request 2" "Request 3"
+assert_contains "all 7 demos ran"             "$OUT" "Demo 1" "Demo 2" "Demo 3" "Demo 4" "Demo 5" "Demo 6" "Demo 7"
+assert_contains "shared counter increments"   "$OUT" '"counter": 1' '"counter": 2' '"counter": 3'
+assert_contains "auth flow shown (401 then 200)" "$OUT" "401" '"user": "alice"'
+assert_contains "POST returns 201 + GET 404"  "$OUT" "201 Created" "404"
+assert_contains "lessons printed"             "$OUT" "LESSON"
 stop_all_servers
 
 # ============================================================

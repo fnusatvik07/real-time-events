@@ -1,0 +1,24 @@
+        <mxfile host="app.diagrams.net">
+          <diagram name="11_websocket_chat" id="11_websocket_chat">
+            <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1"
+                          tooltips="1" connect="1" arrows="1" fold="1" page="1"
+                          pageScale="1" pageWidth="1100" pageHeight="560"
+                          math="0" shadow="0">
+              <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="title1" value="WebSocket Broadcast - one server, many persistent connections" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=20;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="40" y="24" width="1020" height="34" as="geometry"/></mxCell>
+<mxCell id="sub2" value="Each client = one open TCP socket. Server fans out every received message to all of them." style="text;html=1;align=center;whiteSpace=wrap;fontSize=13;fontStyle=2;fontColor=#555;" vertex="1" parent="1"><mxGeometry x="40" y="60" width="1020" height="22" as="geometry"/></mxCell>
+<mxCell id="box3" value="USER A" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=13;fontStyle=1;align=center;verticalAlign=middle;strokeWidth=1.5;" vertex="1" parent="1"><mxGeometry x="100" y="150" width="160" height="60" as="geometry"/></mxCell>
+<mxCell id="box4" value="USER B" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=13;fontStyle=1;align=center;verticalAlign=middle;strokeWidth=1.5;" vertex="1" parent="1"><mxGeometry x="100" y="250" width="160" height="60" as="geometry"/></mxCell>
+<mxCell id="box5" value="USER C" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=13;fontStyle=1;align=center;verticalAlign=middle;strokeWidth=1.5;" vertex="1" parent="1"><mxGeometry x="100" y="350" width="160" height="60" as="geometry"/></mxCell>
+<mxCell id="box6" value="WS SERVER&#10;&#10;clients : set[WebSocket]&#10;on receive(msg):&#10;    for c in clients: c.send(msg)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=13;fontStyle=0;align=center;verticalAlign=middle;strokeWidth=1.5;" vertex="1" parent="1"><mxGeometry x="600" y="220" width="320" height="130" as="geometry"/></mxCell>
+<mxCell id="e7" value="send &quot;hi&quot;" style="endArrow=classic;startArrow=none;html=1;rounded=0;strokeColor=#333;strokeWidth=2.5;fontSize=11;edgeStyle=none;" edge="1" parent="1" source="box3" target="box6"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="e8" value="broadcast" style="endArrow=classic;startArrow=none;html=1;rounded=0;strokeColor=#333;strokeWidth=1.6;fontSize=11;dashed=1;edgeStyle=none;" edge="1" parent="1" source="box6" target="box4"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="e9" value="broadcast" style="endArrow=classic;startArrow=none;html=1;rounded=0;strokeColor=#333;strokeWidth=1.6;fontSize=11;dashed=1;edgeStyle=none;" edge="1" parent="1" source="box6" target="box5"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="e10" value="(also sender)" style="endArrow=classic;startArrow=none;html=1;rounded=0;strokeColor=#333;strokeWidth=1.6;fontSize=11;dashed=1;edgeStyle=none;" edge="1" parent="1" source="box6" target="box3"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="note11" value="Scaling notes&#10;1 process → ~10-50K concurrent WS connections is achievable; needs tuning.&#10;Multiple processes/servers → broadcast across them with Redis pub-sub (or NATS).&#10;Sticky load-balancing → once a client connects to server A, it must stay on A." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;align=left;verticalAlign=middle;spacingLeft=14;spacingRight=14;spacingTop=8;spacingBottom=8;strokeWidth=1.5;" vertex="1" parent="1"><mxGeometry x="100" y="440" width="920" height="90" as="geometry"/></mxCell>
+              </root>
+            </mxGraphModel>
+          </diagram>
+        </mxfile>

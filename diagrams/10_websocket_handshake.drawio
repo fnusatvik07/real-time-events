@@ -1,0 +1,26 @@
+        <mxfile host="app.diagrams.net">
+          <diagram name="10_websocket_handshake" id="10_websocket_handshake">
+            <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1"
+                          tooltips="1" connect="1" arrows="1" fold="1" page="1"
+                          pageScale="1" pageWidth="1100" pageHeight="682"
+                          math="0" shadow="0">
+              <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="title1" value="WebSocket - HTTP upgrade, then full-duplex frames" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=20;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="40" y="24" width="1020" height="34" as="geometry"/></mxCell>
+<mxCell id="sub2" value="Starts life as HTTP so it can punch through proxies. After upgrade, it's a custom protocol on the same TCP." style="text;html=1;align=center;whiteSpace=wrap;fontSize=13;fontStyle=2;fontColor=#555;" vertex="1" parent="1"><mxGeometry x="40" y="60" width="1020" height="22" as="geometry"/></mxCell>
+<mxCell id="sl3" value="PHASE 1 - HTTP handshake" style="text;html=1;align=center;whiteSpace=wrap;fontSize=12;fontStyle=1;fontColor=#666;" vertex="1" parent="1"><mxGeometry x="300" y="150" width="510" height="20" as="geometry"/></mxCell>
+<mxCell id="msg4" value="GET /chat HTTP/1.1&#10;Upgrade: websocket&#10;Connection: Upgrade&#10;Sec-WebSocket-Key: dGhlIHNhbXBsZSB..." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#999999;fontSize=11;fontStyle=0;fontFamily=Courier New;align=center;verticalAlign=middle;spacingLeft=6;spacingRight=6;" vertex="1" parent="1"><mxGeometry x="300" y="176" width="510" height="90" as="geometry"/></mxCell>
+<mxCell id="msg5" value="HTTP/1.1 101 Switching Protocols&#10;Upgrade: websocket&#10;Sec-WebSocket-Accept: s3pPLMBiTxaQ..." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#999999;fontSize=11;fontStyle=0;fontFamily=Courier New;align=center;verticalAlign=middle;spacingLeft=6;spacingRight=6;" vertex="1" parent="1"><mxGeometry x="300" y="276" width="510" height="80" as="geometry"/></mxCell>
+<mxCell id="sl6" value="PHASE 2 - full-duplex WebSocket frames (no more HTTP)" style="text;html=1;align=center;whiteSpace=wrap;fontSize=12;fontStyle=1;fontColor=#666;" vertex="1" parent="1"><mxGeometry x="300" y="376" width="510" height="20" as="geometry"/></mxCell>
+<mxCell id="msg7" value="→  text frame: &quot;hello&quot;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;fontStyle=0;fontFamily=Courier New;align=center;verticalAlign=middle;spacingLeft=6;spacingRight=6;" vertex="1" parent="1"><mxGeometry x="300" y="402" width="510" height="26" as="geometry"/></mxCell>
+<mxCell id="msg8" value="←  text frame: &quot;hi back&quot;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;fontStyle=0;fontFamily=Courier New;align=center;verticalAlign=middle;spacingLeft=6;spacingRight=6;" vertex="1" parent="1"><mxGeometry x="300" y="432" width="510" height="26" as="geometry"/></mxCell>
+<mxCell id="msg9" value="→  binary frame: &lt;1024 bytes&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;fontStyle=0;fontFamily=Courier New;align=center;verticalAlign=middle;spacingLeft=6;spacingRight=6;" vertex="1" parent="1"><mxGeometry x="300" y="462" width="510" height="26" as="geometry"/></mxCell>
+<mxCell id="msg10" value="←  text frame: &quot;ack&quot;  (server pushes whenever)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;fontStyle=0;fontFamily=Courier New;align=center;verticalAlign=middle;spacingLeft=6;spacingRight=6;" vertex="1" parent="1"><mxGeometry x="300" y="492" width="510" height="26" as="geometry"/></mxCell>
+<mxCell id="lane11" value="CLIENT" style="shape=swimlane;horizontal=1;startSize=34;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=14;fontStyle=1;swimlaneFillColor=#ffffff;rounded=0;strokeWidth=2;" vertex="1" parent="1"><mxGeometry x="100" y="110" width="180" height="422" as="geometry"/></mxCell>
+<mxCell id="lane12" value="SERVER" style="shape=swimlane;horizontal=1;startSize=34;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=14;fontStyle=1;swimlaneFillColor=#ffffff;rounded=0;strokeWidth=2;" vertex="1" parent="1"><mxGeometry x="820" y="110" width="180" height="422" as="geometry"/></mxCell>
+<mxCell id="note13" value="Connection stays open until either side sends a Close frame.&#10;Useful for chat, voice, games, collaboration, interruptible LLM streams.&#10;Cost:  one open TCP socket per connected client - make sure you need bidirectional." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;align=left;verticalAlign=middle;spacingLeft=14;spacingRight=14;spacingTop=8;spacingBottom=8;strokeWidth=1.5;" vertex="1" parent="1"><mxGeometry x="100" y="562" width="920" height="90" as="geometry"/></mxCell>
+              </root>
+            </mxGraphModel>
+          </diagram>
+        </mxfile>

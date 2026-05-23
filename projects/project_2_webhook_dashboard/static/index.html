@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Webhook → Live Dashboard</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    :root {
+      --bg: #0f1115;
+      --panel: #161a22;
+      --border: #262d3a;
+      --text: #e5e7eb;
+      --muted: #94a3b8;
+      --accent: #60a5fa;
+      --good: #34d399;
+      --warn: #fbbf24;
+      --bad: #f87171;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; padding: 20px; min-height: 100vh;
+      font: 14px/1.4 ui-sans-serif, system-ui, sans-serif;
+      background: var(--bg); color: var(--text);
+    }
+    h1 { font-size: 20px; margin: 0 0 4px; }
+    .sub { color: var(--muted); margin-bottom: 18px; font-size: 13px; }
+    .controls {
+      background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+      padding: 12px; margin-bottom: 18px;
+    }
+    .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    button {
+      background: var(--accent); color: #0b1220; border: 0; border-radius: 6px;
+      padding: 6px 12px; font-weight: 600; cursor: pointer;
+    }
+    button.ghost {
+      background: transparent; color: var(--muted); border: 1px solid var(--border);
+    }
+    button.bad { background: var(--bad); color: #1a0b0b; }
+    button.warn { background: var(--warn); color: #1a1306; }
+    .grid {
+      display: grid; gap: 16px;
+      grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+    }
+    .card {
+      background: var(--panel); border: 1px solid var(--border);
+      border-radius: 10px; padding: 14px;
+    }
+    .card h2 {
+      margin: 0 0 6px; font-size: 15px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .badge {
+      font-size: 11px; padding: 2px 8px; border-radius: 6px; font-weight: 700;
+    }
+    .badge.polling { background: rgba(248,113,113,0.15); color: var(--bad); }
+    .badge.sse     { background: rgba(52,211,153,0.15); color: var(--good); }
+    .desc { color: var(--muted); font-size: 12px; margin-bottom: 8px; }
+    .stats {
+      font-size: 11px; color: var(--muted); margin-bottom: 8px;
+      display: flex; justify-content: space-between; flex-wrap: wrap; gap: 6px;
+    }
+    .pill { padding: 2px 6px; border-radius: 4px; font-weight: 600; font-size: 11px; }
+    .pill.good { background: rgba(52,211,153,0.15); color: var(--good); }
+    .pill.warn { background: rgba(251,191,36,0.15); color: var(--warn); }
+    .pill.bad  { background: rgba(248,113,113,0.15); color: var(--bad); }
+    .feed {
+      background: #0b0e14; border: 1px solid var(--border); border-radius: 8px;
+      max-height: 480px; overflow-y: auto;
+    }
+    .ev {
+      padding: 8px 10px; border-bottom: 1px solid var(--border);
+      font-family: ui-monospace, monospace; font-size: 12px;
+    }
+    .ev:last-child { border-bottom: 0; }
+    .ev .row1 {
+      display: flex; gap: 8px; align-items: center; margin-bottom: 4px;
+    }
+    .ev .seq { color: var(--muted); }
+    .ev .type {
+      padding: 1px 6px; border-radius: 4px; font-weight: 700;
+    }
+    .type.payment\.succeeded { background: rgba(52,211,153,0.15); color: var(--good); }
+    .type.payment\.failed    { background: rgba(248,113,113,0.15); color: var(--bad); }
+    .type.refund\.created    { background: rgba(251,191,36,0.15); color: var(--warn); }
+    .type.subscription\.renewed { background: rgba(96,165,250,0.15); color: var(--accent); }
+    .ev .ts { color: var(--muted); margin-left: auto; font-size: 11px; }
+    .ev .data { color: var(--muted); padding-left: 8px; }
+    .new { animation: flash 0.6s; }
+    @keyframes flash { from { background: rgba(96,165,250,0.25); } to { background: transparent; } }
+    code { background: #0b0e14; padding: 1px 5px; border-radius: 3px; }
+    .footer {
+      margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border);
+      color: var(--muted); font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Webhook → Live Dashboard</h1>
+  <p class="sub">
+    External services POST signed events to <code>/webhook/payment</code>. The backend verifies the
+    HMAC, dedups by event id, stores in SQLite, then pushes live to dashboards via SSE.
+    Two dashboards below show the same data the <strong>polling</strong> way and the <strong>SSE</strong> way.
+  </p>
+
+  <div class="controls">
+    <div class="row">
+      <strong style="margin-right: 8px;">Simulate webhook traffic:</strong>
+      <button onclick="fire(1)">+1 event</button>
+      <button onclick="fire(5)">+5 events (burst)</button>
+      <button class="warn" onclick="replay()">Send duplicate (test dedup)</button>
+      <button class="bad" onclick="forgery()">Send unsigned (test security)</button>
+      <button class="ghost" onclick="reset()">Reset DB</button>
+      <span id="sim-status" style="margin-left:auto; color: var(--muted); font-size: 12px;"></span>
+    </div>
+  </div>
+
+  <div class="grid">
+    <!-- =============================================================== -->
+    <!--   POLLING DASHBOARD                                             -->
+    <!-- =============================================================== -->
+    <div class="card">
+      <h2>
+        <span><span class="badge polling">POLLING</span> &nbsp; Dashboard A (the old way)</span>
+        <button class="ghost" onclick="togglePoll()" id="poll-toggle">Pause</button>
+      </h2>
+      <p class="desc">
+        Calls <code>GET /events?since=N</code> every 2 seconds. Note the polls
+        that return empty arrays - the cost of "checking just in case."
+      </p>
+      <div class="stats">
+        <span>status: <span id="poll-status" class="pill good">polling</span></span>
+        <span>polls fired: <span id="poll-count">0</span></span>
+        <span>empty polls: <span id="poll-empty">0</span></span>
+        <span>events received: <span id="poll-events">0</span></span>
+      </div>
+      <div class="feed" id="poll-feed"></div>
+    </div>
+
+    <!-- =============================================================== -->
+    <!--   SSE DASHBOARD                                                 -->
+    <!-- =============================================================== -->
+    <div class="card">
+      <h2>
+        <span><span class="badge sse">SSE</span> &nbsp; Dashboard B (live push)</span>
+        <button class="ghost" onclick="toggleSSE()" id="sse-toggle">Disconnect</button>
+      </h2>
+      <p class="desc">
+        Opens one <code>GET /stream</code> connection. Server pushes events as
+        they arrive. <strong>Zero traffic when idle.</strong>
+      </p>
+      <div class="stats">
+        <span>conn: <span id="sse-conn" class="pill warn">connecting</span></span>
+        <span>requests: <span id="sse-reqs">0</span></span>
+        <span>events received: <span id="sse-events">0</span></span>
+      </div>
+      <div class="feed" id="sse-feed"></div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <strong>What to watch:</strong>
+    <ol>
+      <li><strong>Idle period:</strong> open DevTools Network. Polling fires every 2s even with no events. SSE shows ONE connection sitting open.</li>
+      <li><strong>Fire a burst:</strong> SSE updates instantly. Polling updates on its next tick (up to 2s late).</li>
+      <li><strong>Dedup:</strong> click "Send duplicate" - server returns <code>{duplicate:true}</code> and no extra row appears.</li>
+      <li><strong>Forgery:</strong> click "Send unsigned" - server returns 401, nothing is stored.</li>
+    </ol>
+    Backend: <code>server.py</code>. Endpoints: <code>POST /webhook/payment</code>, <code>GET /events?since=N</code>, <code>GET /stream</code>.
+  </div>
+
+<script>
+// =====================================================================
+// Helpers
+// =====================================================================
+const $ = (id) => document.getElementById(id);
+
+function renderEvent(container, e, animate) {
+  const div = document.createElement('div');
+  div.className = 'ev' + (animate ? ' new' : '');
+  const dt = new Date(e.received_at * 1000).toLocaleTimeString();
+  const data = e.payload.data || {};
+  const cls = e.type.replaceAll('.', '\\.');
+  div.innerHTML = `
+    <div class="row1">
+      <span class="seq">#${e.seq}</span>
+      <span class="type ${cls}">${e.type}</span>
+      <span class="ts">${dt}</span>
+    </div>
+    <div class="data">${data.customer || '?'} · $${((data.amount_cents||0)/100).toFixed(2)} ${data.currency||''} · <code>${e.event_id}</code></div>
+  `;
+  // newest first
+  container.insertBefore(div, container.firstChild);
+}
+
+async function fire(n) {
+  $('sim-status').textContent = `firing ${n}...`;
+  const r = await fetch(`/simulate/burst?n=${n}`, { method: 'POST' });
+  const j = await r.json();
+  $('sim-status').textContent = `fired ${j.fired}`;
+}
+async function replay() {
+  $('sim-status').textContent = 'sending duplicate...';
+  const r = await fetch('/simulate/replay', { method: 'POST' });
+  const j = await r.json();
+  $('sim-status').textContent = `1st: ${JSON.stringify(j.first)} · 2nd: ${JSON.stringify(j.second)}`;
+}
+async function forgery() {
+  $('sim-status').textContent = 'sending forgery...';
+  const r = await fetch('/simulate/forgery', { method: 'POST' });
+  const j = await r.json();
+  $('sim-status').textContent = `forgery returned HTTP ${j.status}`;
+}
+async function reset() {
+  await fetch('/admin/reset', { method: 'POST' });
+  $('poll-feed').innerHTML = ''; $('sse-feed').innerHTML = '';
+  $('poll-count').textContent = '0'; $('poll-empty').textContent = '0'; $('poll-events').textContent = '0';
+  $('sse-events').textContent = '0';
+  pollSinceSeq = 0;
+  $('sim-status').textContent = 'DB reset';
+  if (sse) { sse.close(); connectSSE(); }
+}
+
+// =====================================================================
+// POLLING dashboard
+// =====================================================================
+let pollSinceSeq = 0;
+let pollCount = 0;
+let pollEmpty = 0;
+let pollEvents = 0;
+let pollEnabled = true;
+let pollEventsShown = 0;
+
+async function pollOnce() {
+  if (!pollEnabled) return;
+  pollCount++;
+  $('poll-count').textContent = pollCount;
+  try {
+    const r = await fetch(`/events?since=${pollSinceSeq}`);
+    const j = await r.json();
+    if (!j.events.length) {
+      pollEmpty++;
+      $('poll-empty').textContent = pollEmpty;
+    } else {
+      for (const e of j.events) {
+        renderEvent($('poll-feed'), e, true);
+        pollSinceSeq = Math.max(pollSinceSeq, e.seq);
+        pollEvents++;
+      }
+      $('poll-events').textContent = pollEvents;
+    }
+  } catch (e) {
+    // ignore - next tick
+  }
+}
+
+function togglePoll() {
+  pollEnabled = !pollEnabled;
+  $('poll-toggle').textContent = pollEnabled ? 'Pause' : 'Resume';
+  if (pollEnabled) setPollPill('polling', 'good');
+  else setPollPill('paused', 'warn');
+}
+function setPollPill(t, c) { const el=$('poll-status'); el.textContent=t; el.className='pill '+c; }
+
+setInterval(pollOnce, 2000);
+
+// =====================================================================
+// SSE dashboard
+// =====================================================================
+let sse = null;
+let sseEvents = 0;
+let sseReqs = 0;
+
+function setSSEPill(t, c) { const el=$('sse-conn'); el.textContent=t; el.className='pill '+c; }
+
+function connectSSE() {
+  sseReqs++;
+  $('sse-reqs').textContent = sseReqs;
+  sse = new EventSource('/stream');
+  setSSEPill('connecting', 'warn');
+
+  sse.addEventListener('ready', (e) => {
+    setSSEPill('subscribed', 'good');
+  });
+
+  sse.addEventListener('payment', (e) => {
+    const evt = JSON.parse(e.data);
+    renderEvent($('sse-feed'), evt, true);
+    sseEvents++;
+    $('sse-events').textContent = sseEvents;
+  });
+
+  sse.onerror = () => {
+    setSSEPill('reconnecting...', 'warn');
+    // EventSource auto-reconnects, no need to do anything
+  };
+}
+
+function toggleSSE() {
+  if (sse) {
+    sse.close(); sse = null;
+    setSSEPill('disconnected', 'bad');
+    $('sse-toggle').textContent = 'Reconnect';
+  } else {
+    connectSSE();
+    $('sse-toggle').textContent = 'Disconnect';
+  }
+}
+
+// kick everything off
+connectSSE();
+</script>
+</body>
+</html>

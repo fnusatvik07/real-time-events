@@ -1,0 +1,27 @@
+# Secrets — never commit
+.env
+.env.local
+.env.*.local
+
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Local SQLite stores (re-created by project 2 on run)
+*.db
+projects/project_2_webhook_dashboard/events.db
+
+# QA artifacts
+examples/.qa_logs/
+
+# Editor / OS junk
+.DS_Store
+.idea/
+.vscode/

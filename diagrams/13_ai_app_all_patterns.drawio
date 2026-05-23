@@ -1,0 +1,35 @@
+        <mxfile host="app.diagrams.net">
+          <diagram name="13_ai_app_all_patterns" id="13_ai_app_all_patterns">
+            <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1"
+                          tooltips="1" connect="1" arrows="1" fold="1" page="1"
+                          pageScale="1" pageWidth="1400" pageHeight="820"
+                          math="0" shadow="0">
+              <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="title1" value="A Real AI App Uses ALL Four Patterns - Composed, Not Chosen" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=20;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="40" y="24" width="1320" height="34" as="geometry"/></mxCell>
+<mxCell id="sub2" value="Each edge is labelled with which pattern carries data along it.  Same backend, four delivery mechanisms." style="text;html=1;align=center;whiteSpace=wrap;fontSize=13;fontStyle=2;fontColor=#555;" vertex="1" parent="1"><mxGeometry x="40" y="60" width="1320" height="22" as="geometry"/></mxCell>
+<mxCell id="box3" value="BROWSER UI" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=14;fontStyle=1;align=center;verticalAlign=middle;strokeWidth=1.5;" vertex="1" parent="1"><mxGeometry x="580" y="120" width="240" height="80" as="geometry"/></mxCell>
+<mxCell id="box4" value="APP BACKEND&#10;(FastAPI / Node)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=14;fontStyle=1;align=center;verticalAlign=middle;strokeWidth=1.5;" vertex="1" parent="1"><mxGeometry x="580" y="380" width="240" height="100" as="geometry"/></mxCell>
+<mxCell id="box5" value="GitHub" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=13;fontStyle=1;align=center;verticalAlign=middle;strokeWidth=1.5;" vertex="1" parent="1"><mxGeometry x="80" y="330" width="160" height="60" as="geometry"/></mxCell>
+<mxCell id="box6" value="Stripe" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=13;fontStyle=1;align=center;verticalAlign=middle;strokeWidth=1.5;" vertex="1" parent="1"><mxGeometry x="80" y="420" width="160" height="60" as="geometry"/></mxCell>
+<mxCell id="box7" value="LLM API&#10;(OpenAI/Anthropic)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;strokeWidth=1.5;" vertex="1" parent="1"><mxGeometry x="1140" y="330" width="200" height="60" as="geometry"/></mxCell>
+<mxCell id="box8" value="OpenAI Realtime&#10;(voice)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;strokeWidth=1.5;" vertex="1" parent="1"><mxGeometry x="1140" y="420" width="200" height="60" as="geometry"/></mxCell>
+<mxCell id="box9" value="Job Queue (Redis)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=13;fontStyle=1;align=center;verticalAlign=middle;strokeWidth=1.5;" vertex="1" parent="1"><mxGeometry x="330" y="580" width="220" height="60" as="geometry"/></mxCell>
+<mxCell id="box10" value="WORKER (long-running)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=13;fontStyle=1;align=center;verticalAlign=middle;strokeWidth=1.5;" vertex="1" parent="1"><mxGeometry x="580" y="580" width="240" height="60" as="geometry"/></mxCell>
+<mxCell id="box11" value="Postgres" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=13;fontStyle=1;align=center;verticalAlign=middle;strokeWidth=1.5;" vertex="1" parent="1"><mxGeometry x="850" y="580" width="220" height="60" as="geometry"/></mxCell>
+<mxCell id="e12" value="REST   POST /chat" style="endArrow=classic;startArrow=none;html=1;rounded=0;strokeColor=#333;strokeWidth=2.5;fontSize=11;edgeStyle=none;" edge="1" parent="1" source="box3" target="box4"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="e13" value="SSE   streamed tokens" style="endArrow=classic;startArrow=none;html=1;rounded=0;strokeColor=#333;strokeWidth=2.5;fontSize=11;dashed=1;edgeStyle=none;" edge="1" parent="1" source="box4" target="box3"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="e14" value="WEBHOOK   PR opened" style="endArrow=classic;startArrow=none;html=1;rounded=0;strokeColor=#333;strokeWidth=2.5;fontSize=11;edgeStyle=none;" edge="1" parent="1" source="box5" target="box4"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="e15" value="WEBHOOK   payment.succeeded" style="endArrow=classic;startArrow=none;html=1;rounded=0;strokeColor=#333;strokeWidth=2.5;fontSize=11;edgeStyle=none;" edge="1" parent="1" source="box6" target="box4"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="e16" value="HTTP + stream=True (SSE)" style="endArrow=classic;startArrow=none;html=1;rounded=0;strokeColor=#333;strokeWidth=2.5;fontSize=11;edgeStyle=none;" edge="1" parent="1" source="box4" target="box7"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="e17" value="WebSocket  audio frames (bidi)" style="endArrow=classic;startArrow=classic;html=1;rounded=0;strokeColor=#333;strokeWidth=2.5;fontSize=11;edgeStyle=none;" edge="1" parent="1" source="box4" target="box8"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="e18" value="enqueue" style="endArrow=classic;startArrow=none;html=1;rounded=0;strokeColor=#333;strokeWidth=1.6;fontSize=11;edgeStyle=none;" edge="1" parent="1" source="box4" target="box9"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="e19" value="dequeue" style="endArrow=classic;startArrow=none;html=1;rounded=0;strokeColor=#333;strokeWidth=1.6;fontSize=11;edgeStyle=none;" edge="1" parent="1" source="box9" target="box10"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="e20" value="WEBHOOK callback: done" style="endArrow=classic;startArrow=none;html=1;rounded=0;strokeColor=#333;strokeWidth=1.6;fontSize=11;dashed=1;edgeStyle=none;" edge="1" parent="1" source="box10" target="box4"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="e21" value="SQL" style="endArrow=classic;startArrow=none;html=1;rounded=0;strokeColor=#333;strokeWidth=1.6;fontSize=11;edgeStyle=none;" edge="1" parent="1" source="box4" target="box11"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="note22" value="Legend&#10;Colour code:  blue = client/UI    green = your backend    red = external services    purple = AI providers    orange = your infrastructure&#10;Line style:   solid = primary request    dashed = response / async push    double-headed = bidirectional" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;align=left;verticalAlign=middle;spacingLeft=14;spacingRight=14;spacingTop=8;spacingBottom=8;strokeWidth=1.5;" vertex="1" parent="1"><mxGeometry x="80" y="700" width="1240" height="90" as="geometry"/></mxCell>
+              </root>
+            </mxGraphModel>
+          </diagram>
+        </mxfile>

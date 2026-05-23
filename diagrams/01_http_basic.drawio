@@ -1,0 +1,21 @@
+        <mxfile host="app.diagrams.net">
+          <diagram name="01_http_basic" id="01_http_basic">
+            <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1"
+                          tooltips="1" connect="1" arrows="1" fold="1" page="1"
+                          pageScale="1" pageWidth="1000" pageHeight="540"
+                          math="0" shadow="0">
+              <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="title1" value="HTTP - Request / Response, then the conversation ends" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=20;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="40" y="24" width="920" height="34" as="geometry"/></mxCell>
+<mxCell id="sub2" value="Stateless. Client always initiates. This is the limitation the next 4 patterns work around." style="text;html=1;align=center;whiteSpace=wrap;fontSize=13;fontStyle=2;fontColor=#555;" vertex="1" parent="1"><mxGeometry x="40" y="60" width="920" height="22" as="geometry"/></mxCell>
+<mxCell id="box3" value="CLIENT&#10;(browser / app / curl)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=14;fontStyle=1;align=center;verticalAlign=middle;strokeWidth=1.5;" vertex="1" parent="1"><mxGeometry x="100" y="130" width="220" height="70" as="geometry"/></mxCell>
+<mxCell id="box4" value="SERVER" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=14;fontStyle=1;align=center;verticalAlign=middle;strokeWidth=1.5;" vertex="1" parent="1"><mxGeometry x="680" y="130" width="220" height="70" as="geometry"/></mxCell>
+<mxCell id="erq" value="① HTTP Request&#10;GET /api/users HTTP/1.1" style="endArrow=classic;html=1;strokeColor=#333;strokeWidth=2;fontSize=12;" edge="1" parent="1" source="box3" target="box4"><mxGeometry y="-20" relative="1" as="geometry"><mxPoint as="offset"/></mxGeometry></mxCell>
+<mxCell id="ersp" value="② HTTP Response&#10;200 OK + body" style="endArrow=classic;html=1;strokeColor=#333;strokeWidth=2;fontSize=12;dashed=1;" edge="1" parent="1" source="box4" target="box3"><mxGeometry y="20" relative="1" as="geometry"><mxPoint as="offset"/></mxGeometry></mxCell>
+<mxCell id="cap5" value="③ Connection closes (or kept-alive for the NEXT request, but each request is still independent)" style="text;html=1;align=center;whiteSpace=wrap;fontSize=12;fontStyle=2;fontColor=#555;" vertex="1" parent="1"><mxGeometry x="100" y="240" width="800" height="22" as="geometry"/></mxCell>
+<mxCell id="note6" value="Key idea&#10;&#10;• Server cannot speak unless asked.&#10;• Each request is independent - server has no memory between them.&#10;• Every other pattern in this workshop exists to escape this limitation." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;align=left;verticalAlign=middle;spacingLeft=14;spacingRight=14;spacingTop=8;spacingBottom=8;strokeWidth=1.5;" vertex="1" parent="1"><mxGeometry x="160" y="350" width="680" height="150" as="geometry"/></mxCell>
+              </root>
+            </mxGraphModel>
+          </diagram>
+        </mxfile>

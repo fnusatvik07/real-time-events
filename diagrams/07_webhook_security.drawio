@@ -1,0 +1,23 @@
+        <mxfile host="app.diagrams.net">
+          <diagram name="07_webhook_security" id="07_webhook_security">
+            <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1"
+                          tooltips="1" connect="1" arrows="1" fold="1" page="1"
+                          pageScale="1" pageWidth="1100" pageHeight="620"
+                          math="0" shadow="0">
+              <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="title1" value="Webhook Signature Verification - HMAC-SHA256" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=20;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="40" y="24" width="1020" height="34" as="geometry"/></mxCell>
+<mxCell id="sub2" value="Without this, anyone with your URL can POST a fake &quot;payment.succeeded&quot; event." style="text;html=1;align=center;whiteSpace=wrap;fontSize=13;fontStyle=2;fontColor=#555;" vertex="1" parent="1"><mxGeometry x="40" y="60" width="1020" height="22" as="geometry"/></mxCell>
+<mxCell id="box3" value="SENDER" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=14;fontStyle=1;align=center;verticalAlign=middle;strokeWidth=1.5;" vertex="1" parent="1"><mxGeometry x="100" y="120" width="260" height="60" as="geometry"/></mxCell>
+<mxCell id="box4" value="YOUR SERVER" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=14;fontStyle=1;align=center;verticalAlign=middle;strokeWidth=1.5;" vertex="1" parent="1"><mxGeometry x="740" y="120" width="260" height="60" as="geometry"/></mxCell>
+<mxCell id="code5" value="sig = HMAC_SHA256(&#10;    secret,&#10;    timestamp + body&#10;)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#999999;fontSize=11;fontFamily=Courier New;fontStyle=0;align=left;verticalAlign=middle;spacingLeft=8;spacingTop=4;spacingBottom=4;strokeWidth=1.5;" vertex="1" parent="1"><mxGeometry x="60" y="210" width="340" height="70" as="geometry"/></mxCell>
+<mxCell id="code6" value="POST /webhooks/stripe&#10;Stripe-Signature:&#10;  t=1700000000,&#10;  v1=abc123def...&#10;&#10;{body}" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#999999;fontSize=11;fontFamily=Courier New;fontStyle=0;align=left;verticalAlign=middle;spacingLeft=8;spacingTop=4;spacingBottom=4;strokeWidth=1.5;" vertex="1" parent="1"><mxGeometry x="420" y="210" width="260" height="100" as="geometry"/></mxCell>
+<mxCell id="code7" value="expected = HMAC_SHA256(&#10;    secret,&#10;    timestamp + body&#10;)&#10;hmac.compare_digest(expected, v1)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#999999;fontSize=11;fontFamily=Courier New;fontStyle=0;align=left;verticalAlign=middle;spacingLeft=8;spacingTop=4;spacingBottom=4;strokeWidth=1.5;" vertex="1" parent="1"><mxGeometry x="700" y="210" width="340" height="100" as="geometry"/></mxCell>
+<mxCell id="box8" value="✓  Match → trust body" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;fontStyle=0;align=center;verticalAlign=middle;strokeWidth=1.5;" vertex="1" parent="1"><mxGeometry x="700" y="340" width="165" height="50" as="geometry"/></mxCell>
+<mxCell id="box9" value="✗  Reject → 401" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;fontStyle=0;align=center;verticalAlign=middle;strokeWidth=1.5;" vertex="1" parent="1"><mxGeometry x="875" y="340" width="165" height="50" as="geometry"/></mxCell>
+<mxCell id="note10" value="Three things that matter&#10;&#10;1.  Use a constant-time compare (`hmac.compare_digest`) - prevents timing attacks.&#10;2.  Sign the timestamp + body together, not just the body - prevents replay attacks.&#10;3.  Reject requests older than ~5 minutes by checking the timestamp." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;align=left;verticalAlign=middle;spacingLeft=14;spacingRight=14;spacingTop=8;spacingBottom=8;strokeWidth=1.5;" vertex="1" parent="1"><mxGeometry x="100" y="430" width="920" height="170" as="geometry"/></mxCell>
+              </root>
+            </mxGraphModel>
+          </diagram>
+        </mxfile>

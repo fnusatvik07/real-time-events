@@ -1,0 +1,29 @@
+        <mxfile host="app.diagrams.net">
+          <diagram name="03_long_polling" id="03_long_polling">
+            <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1"
+                          tooltips="1" connect="1" arrows="1" fold="1" page="1"
+                          pageScale="1" pageWidth="1000" pageHeight="656"
+                          math="0" shadow="0">
+              <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="title1" value="Long Polling - Server holds the request until data is ready" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=20;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="40" y="24" width="920" height="34" as="geometry"/></mxCell>
+<mxCell id="sub2" value="One in-flight request at a time.  No fixed-interval staleness.  Server needs async I/O." style="text;html=1;align=center;whiteSpace=wrap;fontSize=13;fontStyle=2;fontColor=#555;" vertex="1" parent="1"><mxGeometry x="40" y="60" width="920" height="22" as="geometry"/></mxCell>
+<mxCell id="lane3" value="CLIENT" style="shape=swimlane;horizontal=1;startSize=34;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=14;fontStyle=1;swimlaneFillColor=#ffffff;rounded=0;strokeWidth=2;" vertex="1" parent="1"><mxGeometry x="120" y="110" width="160" height="386" as="geometry"/></mxCell>
+<mxCell id="lane4" value="SERVER" style="shape=swimlane;horizontal=1;startSize=34;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=14;fontStyle=1;swimlaneFillColor=#ffffff;rounded=0;strokeWidth=2;" vertex="1" parent="1"><mxGeometry x="720" y="110" width="160" height="386" as="geometry"/></mxCell>
+<mxCell id="cap5" value="t = 0s" style="text;html=1;align=right;whiteSpace=wrap;fontSize=11;fontStyle=0;fontColor=#555;" vertex="1" parent="1"><mxGeometry x="40" y="176" width="80" height="16" as="geometry"/></mxCell>
+<mxCell id="msg6" value="GET /messages?wait=30" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#999999;fontSize=11;fontStyle=0;fontFamily=Courier New;align=center;verticalAlign=middle;spacingLeft=6;spacingRight=6;" vertex="1" parent="1"><mxGeometry x="290" y="170" width="410" height="28" as="geometry"/></mxCell>
+<mxCell id="msg7" value="Server holds the request open ...  (no data yet)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;fontStyle=2;align=center;verticalAlign=middle;spacingLeft=6;spacingRight=6;" vertex="1" parent="1"><mxGeometry x="290" y="212" width="410" height="36" as="geometry"/></mxCell>
+<mxCell id="cap8" value="t = 8s" style="text;html=1;align=right;whiteSpace=wrap;fontSize=11;fontStyle=0;fontColor=#555;" vertex="1" parent="1"><mxGeometry x="40" y="268" width="80" height="16" as="geometry"/></mxCell>
+<mxCell id="msg9" value="Message arrives on the server - flush it down" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;fontStyle=2;align=center;verticalAlign=middle;spacingLeft=6;spacingRight=6;" vertex="1" parent="1"><mxGeometry x="290" y="262" width="410" height="28" as="geometry"/></mxCell>
+<mxCell id="msg10" value="200  [msg1]   ← returned immediately" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#999999;fontSize=11;fontStyle=0;fontFamily=Courier New;align=center;verticalAlign=middle;spacingLeft=6;spacingRight=6;" vertex="1" parent="1"><mxGeometry x="290" y="304" width="410" height="28" as="geometry"/></mxCell>
+<mxCell id="cap11" value="t = 8s+" style="text;html=1;align=right;whiteSpace=wrap;fontSize=11;fontStyle=0;fontColor=#555;" vertex="1" parent="1"><mxGeometry x="40" y="352" width="80" height="16" as="geometry"/></mxCell>
+<mxCell id="msg12" value="GET /messages?wait=30   (client reconnects)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#999999;fontSize=11;fontStyle=0;fontFamily=Courier New;align=center;verticalAlign=middle;spacingLeft=6;spacingRight=6;" vertex="1" parent="1"><mxGeometry x="290" y="346" width="410" height="28" as="geometry"/></mxCell>
+<mxCell id="msg13" value="Server holds again ... 30s passes with no data" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;fontStyle=2;align=center;verticalAlign=middle;spacingLeft=6;spacingRight=6;" vertex="1" parent="1"><mxGeometry x="290" y="388" width="410" height="36" as="geometry"/></mxCell>
+<mxCell id="cap14" value="t = 38s" style="text;html=1;align=right;whiteSpace=wrap;fontSize=11;fontStyle=0;fontColor=#555;" vertex="1" parent="1"><mxGeometry x="40" y="444" width="80" height="16" as="geometry"/></mxCell>
+<mxCell id="msg15" value="204 No Content (timeout)  - client reconnects" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#999999;fontSize=11;fontStyle=0;fontFamily=Courier New;align=center;verticalAlign=middle;spacingLeft=6;spacingRight=6;" vertex="1" parent="1"><mxGeometry x="290" y="438" width="410" height="28" as="geometry"/></mxCell>
+<mxCell id="note16" value="Trade-offs vs short polling&#10;&#10;✓  Sub-second latency for events.   ✓  Far fewer requests per minute.&#10;✗  Server holds many open connections - must use async I/O (asyncio, Node, Go).&#10;✗  Set server timeout BELOW your load-balancer's timeout." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;align=left;verticalAlign=middle;spacingLeft=14;spacingRight=14;spacingTop=8;spacingBottom=8;strokeWidth=1.5;" vertex="1" parent="1"><mxGeometry x="100" y="526" width="800" height="100" as="geometry"/></mxCell>
+              </root>
+            </mxGraphModel>
+          </diagram>
+        </mxfile>

@@ -1,0 +1,404 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Streaming Chat - Polling vs SSE vs WebSocket</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    :root {
+      --bg: #0f1115;
+      --panel: #161a22;
+      --border: #262d3a;
+      --text: #e5e7eb;
+      --muted: #94a3b8;
+      --accent: #60a5fa;
+      --good: #34d399;
+      --warn: #fbbf24;
+      --bad: #f87171;
+      --polling: #f87171;
+      --sse: #34d399;
+      --ws: #60a5fa;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; padding: 24px; min-height: 100vh;
+      font: 14px/1.4 ui-sans-serif, system-ui, sans-serif;
+      background: var(--bg); color: var(--text);
+    }
+    h1 { font-size: 22px; margin: 0 0 4px; }
+    .sub { color: var(--muted); margin-bottom: 24px; }
+    .grid {
+      display: grid; gap: 20px;
+      grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+    }
+    .card {
+      background: var(--panel); border: 1px solid var(--border);
+      border-radius: 12px; padding: 18px;
+    }
+    .card h2 {
+      margin: 0 0 6px; font-size: 16px; display: flex; align-items: center; gap: 8px;
+    }
+    .badge {
+      display: inline-block; padding: 2px 8px; border-radius: 6px;
+      font-size: 11px; font-weight: 700;
+    }
+    .badge.polling { background: rgba(248,113,113,0.15); color: var(--polling); }
+    .badge.sse     { background: rgba(52,211,153,0.15); color: var(--sse); }
+    .badge.ws      { background: rgba(96,165,250,0.15); color: var(--ws); }
+    .desc { color: var(--muted); font-size: 12px; margin-bottom: 12px; }
+    textarea, input[type=text] {
+      width: 100%; resize: vertical; min-height: 60px;
+      background: #0b0e14; border: 1px solid var(--border); color: var(--text);
+      border-radius: 8px; padding: 8px; font-family: inherit;
+    }
+    button {
+      background: var(--accent); color: #0b1220; border: 0; border-radius: 6px;
+      padding: 6px 14px; font-weight: 600; cursor: pointer; margin-right: 6px;
+    }
+    button.ghost {
+      background: transparent; color: var(--muted); border: 1px solid var(--border);
+    }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .meta {
+      font-size: 11px; color: var(--muted); margin: 8px 0;
+      display: flex; justify-content: space-between; flex-wrap: wrap; gap: 6px;
+    }
+    .output {
+      background: #0b0e14; border: 1px solid var(--border); border-radius: 8px;
+      padding: 10px; min-height: 140px; max-height: 320px; overflow-y: auto;
+      white-space: pre-wrap; word-break: break-word;
+      font-family: ui-monospace, monospace; font-size: 13px;
+    }
+    .log {
+      background: #0b0e14; border: 1px dashed var(--border); border-radius: 6px;
+      padding: 6px; margin-top: 6px; font-size: 11px;
+      max-height: 100px; overflow-y: auto;
+      font-family: ui-monospace, monospace; color: var(--muted);
+    }
+    .pill { padding: 2px 6px; border-radius: 4px; font-weight: 600; font-size: 11px; }
+    .pill.good { background: rgba(52,211,153,0.15); color: var(--good); }
+    .pill.warn { background: rgba(251,191,36,0.15); color: var(--warn); }
+    .pill.bad  { background: rgba(248,113,113,0.15); color: var(--bad); }
+    .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .footer {
+      margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--border);
+      color: var(--muted); font-size: 12px;
+    }
+    code { background: #0b0e14; padding: 1px 5px; border-radius: 3px; }
+  </style>
+</head>
+<body>
+  <h1>Streaming Chat - three patterns, same backend</h1>
+  <p class="sub">
+    Same prompt. Same LLM call. Three transport patterns side by side so you can <em>feel</em> the difference.
+  </p>
+
+  <div class="grid">
+
+    <!-- ====================================================== -->
+    <!--   POLLING                                              -->
+    <!-- ====================================================== -->
+    <div class="card">
+      <h2><span class="badge polling">POLLING</span> Wait, then show whole answer</h2>
+      <p class="desc">
+        Client fires a job, then polls <code>/api/polling/status/&lt;id&gt;</code> every second
+        until status is <code>done</code>, then fetches the full result. UX: blank → spinner → BLAM, the whole answer.
+      </p>
+      <textarea id="poll-prompt" placeholder="Ask something...">Explain HTTP status codes in 3 sentences.</textarea>
+      <div class="row" style="margin-top:8px">
+        <button id="poll-btn" onclick="runPolling()">Run</button>
+        <button class="ghost" onclick="document.getElementById('poll-out').textContent=''">Clear</button>
+      </div>
+      <div class="meta">
+        <span>status: <span id="poll-status" class="pill">idle</span></span>
+        <span>polls fired: <span id="poll-count">0</span></span>
+        <span>first byte: <span id="poll-first">-</span></span>
+        <span>total: <span id="poll-total">-</span></span>
+      </div>
+      <div class="output" id="poll-out"></div>
+      <div class="log" id="poll-log"></div>
+    </div>
+
+    <!-- ====================================================== -->
+    <!--   SSE                                                  -->
+    <!-- ====================================================== -->
+    <div class="card">
+      <h2><span class="badge sse">SSE</span> Tokens stream in over HTTP</h2>
+      <p class="desc">
+        Client POSTs to <code>/api/sse/chat</code> and reads the body as an SSE stream
+        of <code>event: token</code> messages. UX: words appear as they're generated.
+      </p>
+      <textarea id="sse-prompt" placeholder="Ask something...">Explain HTTP status codes in 3 sentences.</textarea>
+      <div class="row" style="margin-top:8px">
+        <button id="sse-btn" onclick="runSSE()">Stream</button>
+        <button class="ghost" onclick="document.getElementById('sse-out').textContent=''">Clear</button>
+      </div>
+      <div class="meta">
+        <span>status: <span id="sse-status" class="pill">idle</span></span>
+        <span>tokens: <span id="sse-count">0</span></span>
+        <span>first byte: <span id="sse-first">-</span></span>
+        <span>total: <span id="sse-total">-</span></span>
+      </div>
+      <div class="output" id="sse-out"></div>
+      <div class="log" id="sse-log"></div>
+    </div>
+
+    <!-- ====================================================== -->
+    <!--   WEBSOCKET                                            -->
+    <!-- ====================================================== -->
+    <div class="card">
+      <h2><span class="badge ws">WS</span> Streamed + interruptible</h2>
+      <p class="desc">
+        Persistent WebSocket. Same streaming UX as SSE, plus client can <strong>interrupt</strong>
+        the LLM mid-response (try clicking Interrupt during a long answer).
+      </p>
+      <textarea id="ws-prompt" placeholder="Ask something...">Write a long fun story about a robot exploring Mars. Many paragraphs.</textarea>
+      <div class="row" style="margin-top:8px">
+        <button id="ws-btn" onclick="sendWS()">Stream</button>
+        <button class="ghost" onclick="interruptWS()">Interrupt</button>
+        <button class="ghost" onclick="document.getElementById('ws-out').textContent=''">Clear</button>
+      </div>
+      <div class="meta">
+        <span>conn: <span id="ws-conn" class="pill">disconnected</span></span>
+        <span>status: <span id="ws-status" class="pill">idle</span></span>
+        <span>tokens: <span id="ws-count">0</span></span>
+        <span>first byte: <span id="ws-first">-</span></span>
+        <span>total: <span id="ws-total">-</span></span>
+      </div>
+      <div class="output" id="ws-out"></div>
+      <div class="log" id="ws-log"></div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <strong>What to watch:</strong>
+    <ol>
+      <li>Polling spends ~N requests doing nothing, then dumps the whole answer.</li>
+      <li>SSE feels instant - first token in &lt;1s, words pour in.</li>
+      <li>WebSocket feels identical to SSE for output, but you can interrupt mid-stream. That's the bidirectional advantage.</li>
+    </ol>
+    Inspect <code>/api/about</code> for the endpoint list. Source: <code>server.py</code>.
+  </div>
+
+<script>
+// =====================================================================
+//  Helpers
+// =====================================================================
+const $ = (id) => document.getElementById(id);
+const setPill = (id, txt, cls) => {
+  const el = $(id);
+  el.textContent = txt;
+  el.className = "pill " + (cls || "");
+};
+const log = (id, txt) => {
+  const el = $(id);
+  const now = new Date().toLocaleTimeString();
+  el.textContent += `[${now}] ${txt}\n`;
+  el.scrollTop = el.scrollHeight;
+};
+
+// =====================================================================
+//  Polling implementation
+// =====================================================================
+async function runPolling() {
+  $('poll-btn').disabled = true;
+  $('poll-out').textContent = "";
+  $('poll-log').textContent = "";
+  $('poll-count').textContent = "0";
+  $('poll-first').textContent = "-";
+  $('poll-total').textContent = "-";
+  setPill('poll-status', 'starting', 'warn');
+
+  const prompt = $('poll-prompt').value;
+  const t0 = performance.now();
+  let polls = 0;
+
+  log('poll-log', `POST /api/polling/start`);
+  const startRes = await fetch('/api/polling/start', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ prompt }),
+  });
+  const { job_id } = await startRes.json();
+  log('poll-log', `→ job_id=${job_id}`);
+
+  setPill('poll-status', 'polling', 'warn');
+  while (true) {
+    await new Promise(r => setTimeout(r, 1000));
+    polls++;
+    $('poll-count').textContent = polls;
+    log('poll-log', `GET /api/polling/status/${job_id} (poll #${polls})`);
+    const s = await (await fetch(`/api/polling/status/${job_id}`)).json();
+    log('poll-log', `← ${s.status}`);
+    if (s.status === 'done') break;
+    if (s.status === 'error') {
+      setPill('poll-status', 'error', 'bad');
+      $('poll-out').textContent = "ERROR: " + s.error;
+      $('poll-btn').disabled = false;
+      return;
+    }
+  }
+
+  // Got "done" - now fetch the result
+  log('poll-log', `GET /api/polling/result/${job_id}`);
+  const res = await (await fetch(`/api/polling/result/${job_id}`)).json();
+  const t1 = performance.now();
+  $('poll-first').textContent = Math.round(t1 - t0) + " ms";
+  $('poll-total').textContent = Math.round(t1 - t0) + " ms";
+  $('poll-out').textContent = res.result;
+  setPill('poll-status', 'done', 'good');
+  $('poll-btn').disabled = false;
+}
+
+// =====================================================================
+//  SSE implementation - we use fetch() + getReader() because the browser's
+//  native EventSource API doesn't support POST bodies. The wire format
+//  is identical to what EventSource would parse.
+// =====================================================================
+async function runSSE() {
+  $('sse-btn').disabled = true;
+  $('sse-out').textContent = "";
+  $('sse-log').textContent = "";
+  $('sse-count').textContent = "0";
+  $('sse-first').textContent = "-";
+  $('sse-total').textContent = "-";
+  setPill('sse-status', 'connecting', 'warn');
+
+  const t0 = performance.now();
+  let firstSet = false;
+  let tokens = 0;
+
+  log('sse-log', `POST /api/sse/chat (Accept: text/event-stream)`);
+  const res = await fetch('/api/sse/chat', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', 'accept': 'text/event-stream' },
+    body: JSON.stringify({ prompt: $('sse-prompt').value }),
+  });
+  if (!res.ok) {
+    setPill('sse-status', 'error', 'bad');
+    $('sse-out').textContent = "HTTP " + res.status;
+    $('sse-btn').disabled = false;
+    return;
+  }
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  setPill('sse-status', 'streaming', 'warn');
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+
+    // SSE messages are blank-line-delimited
+    let idx;
+    while ((idx = buffer.indexOf("\n\n")) !== -1) {
+      const raw = buffer.slice(0, idx);
+      buffer = buffer.slice(idx + 2);
+      const evt = parseSSE(raw);
+      if (evt.event === 'token') {
+        if (!firstSet) {
+          $('sse-first').textContent = Math.round(performance.now() - t0) + " ms";
+          firstSet = true;
+        }
+        tokens++;
+        $('sse-count').textContent = tokens;
+        $('sse-out').textContent += evt.data.replace(/\\n/g, "\n");
+      } else if (evt.event === 'done') {
+        log('sse-log', "event: done");
+      } else if (evt.event === 'open') {
+        log('sse-log', "event: open");
+      } else if (evt.event === 'error') {
+        log('sse-log', "event: error " + evt.data);
+      }
+    }
+  }
+  $('sse-total').textContent = Math.round(performance.now() - t0) + " ms";
+  setPill('sse-status', 'done', 'good');
+  $('sse-btn').disabled = false;
+}
+
+function parseSSE(raw) {
+  const out = { event: 'message', data: '' };
+  for (const line of raw.split("\n")) {
+    if (line.startsWith("event:")) out.event = line.slice(6).trim();
+    else if (line.startsWith("data:"))  out.data  += line.slice(5).trimStart();
+    else if (line.startsWith("id:"))    out.id    = line.slice(3).trim();
+  }
+  return out;
+}
+
+// =====================================================================
+//  WebSocket implementation
+// =====================================================================
+let ws = null;
+let wsT0 = 0;
+let wsFirstSet = false;
+let wsTokens = 0;
+
+function connectWS() {
+  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+  ws = new WebSocket(`${proto}://${location.host}/api/ws/chat`);
+  ws.onopen = () => { setPill('ws-conn', 'connected', 'good'); log('ws-log', 'open'); };
+  ws.onclose = () => { setPill('ws-conn', 'disconnected', 'bad'); log('ws-log', 'close'); ws = null; };
+  ws.onerror = (e) => { log('ws-log', 'error'); };
+  ws.onmessage = (e) => {
+    const msg = JSON.parse(e.data);
+    if (msg.type === 'token') {
+      if (!wsFirstSet) {
+        $('ws-first').textContent = Math.round(performance.now() - wsT0) + " ms";
+        wsFirstSet = true;
+      }
+      wsTokens++;
+      $('ws-count').textContent = wsTokens;
+      $('ws-out').textContent += msg.text;
+    } else if (msg.type === 'done') {
+      $('ws-total').textContent = Math.round(performance.now() - wsT0) + " ms";
+      setPill('ws-status', 'done', 'good');
+      $('ws-btn').disabled = false;
+    } else if (msg.type === 'interrupted') {
+      $('ws-total').textContent = Math.round(performance.now() - wsT0) + " ms (interrupted)";
+      setPill('ws-status', 'interrupted', 'warn');
+      $('ws-btn').disabled = false;
+    } else if (msg.type === 'error') {
+      log('ws-log', 'error: ' + msg.message);
+      setPill('ws-status', 'error', 'bad');
+      $('ws-btn').disabled = false;
+    }
+  };
+}
+
+function sendWS() {
+  if (!ws || ws.readyState !== WebSocket.OPEN) {
+    connectWS();
+    // wait until open
+    setTimeout(sendWS, 300);
+    return;
+  }
+  $('ws-out').textContent = "";
+  $('ws-log').textContent = "";
+  $('ws-count').textContent = "0";
+  $('ws-first').textContent = "-";
+  $('ws-total').textContent = "-";
+  wsT0 = performance.now();
+  wsFirstSet = false;
+  wsTokens = 0;
+  setPill('ws-status', 'streaming', 'warn');
+  $('ws-btn').disabled = true;
+  log('ws-log', `send {type:prompt}`);
+  ws.send(JSON.stringify({ type: 'prompt', text: $('ws-prompt').value }));
+}
+
+function interruptWS() {
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    log('ws-log', 'send {type:interrupt}');
+    ws.send(JSON.stringify({ type: 'interrupt' }));
+  }
+}
+
+// Auto-connect on page load
+window.addEventListener('load', () => connectWS());
+</script>
+</body>
+</html>

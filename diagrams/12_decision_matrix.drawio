@@ -1,0 +1,33 @@
+        <mxfile host="app.diagrams.net">
+          <diagram name="12_decision_matrix" id="12_decision_matrix">
+            <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1"
+                          tooltips="1" connect="1" arrows="1" fold="1" page="1"
+                          pageScale="1" pageWidth="1200" pageHeight="780"
+                          math="0" shadow="0">
+              <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="title1" value="Decision Tree - Which pattern when?" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=20;fontStyle=1;" vertex="1" parent="1"><mxGeometry x="40" y="24" width="1120" height="34" as="geometry"/></mxCell>
+<mxCell id="sub2" value="Walk top-to-bottom. Stop at the first leaf that matches." style="text;html=1;align=center;whiteSpace=wrap;fontSize=13;fontStyle=2;fontColor=#555;" vertex="1" parent="1"><mxGeometry x="40" y="60" width="1120" height="22" as="geometry"/></mxCell>
+<mxCell id="q3" value="Need real-time data?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=13;fontStyle=1;strokeWidth=1.5;" vertex="1" parent="1"><mxGeometry x="490" y="110" width="220" height="90" as="geometry"/></mxCell>
+<mxCell id="box4" value="REST&#10;(plain request/response)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;strokeWidth=1.5;" vertex="1" parent="1"><mxGeometry x="80" y="125" width="240" height="60" as="geometry"/></mxCell>
+<mxCell id="e5" value="no" style="endArrow=classic;startArrow=none;html=1;rounded=0;strokeColor=#333;strokeWidth=1.6;fontSize=11;edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="q3" target="box4"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="q6" value="Who initiates the event?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=13;fontStyle=1;strokeWidth=1.5;" vertex="1" parent="1"><mxGeometry x="490" y="250" width="220" height="90" as="geometry"/></mxCell>
+<mxCell id="e7" value="yes" style="endArrow=classic;startArrow=none;html=1;rounded=0;strokeColor=#333;strokeWidth=1.6;fontSize=11;edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="q3" target="q6"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="box8" value="WEBHOOK&#10;(3rd-party POSTs to you)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;strokeWidth=1.5;" vertex="1" parent="1"><mxGeometry x="880" y="265" width="240" height="60" as="geometry"/></mxCell>
+<mxCell id="e9" value="third-party server" style="endArrow=classic;startArrow=none;html=1;rounded=0;strokeColor=#333;strokeWidth=1.6;fontSize=11;edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="q6" target="box8"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="q10" value="Direction of data?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=13;fontStyle=1;strokeWidth=1.5;" vertex="1" parent="1"><mxGeometry x="490" y="390" width="220" height="90" as="geometry"/></mxCell>
+<mxCell id="e11" value="your own server" style="endArrow=classic;startArrow=none;html=1;rounded=0;strokeColor=#333;strokeWidth=1.6;fontSize=11;edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="q6" target="q10"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="box12" value="POLLING&#10;(client keeps asking)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;strokeWidth=1.5;" vertex="1" parent="1"><mxGeometry x="80" y="405" width="240" height="60" as="geometry"/></mxCell>
+<mxCell id="e13" value="client → server only" style="endArrow=classic;startArrow=none;html=1;rounded=0;strokeColor=#333;strokeWidth=1.6;fontSize=11;edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="q10" target="box12"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="q14" value="One-way or two-way?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=13;fontStyle=1;strokeWidth=1.5;" vertex="1" parent="1"><mxGeometry x="490" y="530" width="220" height="90" as="geometry"/></mxCell>
+<mxCell id="e15" value="server → client" style="endArrow=classic;startArrow=none;html=1;rounded=0;strokeColor=#333;strokeWidth=1.6;fontSize=11;edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="q10" target="q14"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="box16" value="SSE&#10;(EventSource, server push)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;strokeWidth=1.5;" vertex="1" parent="1"><mxGeometry x="80" y="545" width="240" height="60" as="geometry"/></mxCell>
+<mxCell id="e17" value="one-way" style="endArrow=classic;startArrow=none;html=1;rounded=0;strokeColor=#333;strokeWidth=1.6;fontSize=11;edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="q14" target="box16"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="box18" value="WEBSOCKET&#10;(full-duplex)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;strokeWidth=1.5;" vertex="1" parent="1"><mxGeometry x="880" y="545" width="240" height="60" as="geometry"/></mxCell>
+<mxCell id="e19" value="two-way" style="endArrow=classic;startArrow=none;html=1;rounded=0;strokeColor=#333;strokeWidth=1.6;fontSize=11;edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="q14" target="box18"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="note20" value="Rules of thumb&#10;&#10;• Default to SSE for any &quot;server pushes updates to user&quot;. Cheap, browser-native, auto-reconnect.&#10;• Reach for WebSocket only when you NEED bidirectional or binary (voice, games, collab, interrupt).&#10;• Use polling for &quot;is this slow thing done yet?&quot;.  Use webhooks when something OUTSIDE is the source of truth." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;align=left;verticalAlign=middle;spacingLeft=14;spacingRight=14;spacingTop=8;spacingBottom=8;strokeWidth=1.5;" vertex="1" parent="1"><mxGeometry x="80" y="660" width="1040" height="100" as="geometry"/></mxCell>
+              </root>
+            </mxGraphModel>
+          </diagram>
+        </mxfile>

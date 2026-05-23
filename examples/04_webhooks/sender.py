@@ -27,13 +27,15 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from _pretty import (
     banner, demo, divider,
     request_line, request_header, request_body, show_response,
-    lesson, note, ok, fail,
+    lesson, note, ok, fail, preflight_check,
 )
 
 import httpx
 
 URL = "http://127.0.0.1:8104/webhooks/stripe"
 SECRET = "whsec_demo_workshop_secret"
+
+preflight_check("http://127.0.0.1:8104", expected_keyword="food delivery payment webhook")
 
 
 def sign(body: bytes) -> str:

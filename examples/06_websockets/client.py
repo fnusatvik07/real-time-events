@@ -27,13 +27,14 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from _pretty import (
     banner, demo, divider,
-    lesson, note, info, ok,
+    lesson, note, info, ok, preflight_check,
     GREEN, CYAN, YELLOW, MAGENTA, BLUE, DIM, BOLD, RESET, event,
 )
 
 import websockets
 
 URL_TEMPLATE = "ws://127.0.0.1:8106/chat?role={role}&order={order}"
+preflight_check("http://127.0.0.1:8106", expected_keyword="delivery chat")
 
 
 # Scripted scenarios. Each entry is (delay_before_sending, text).

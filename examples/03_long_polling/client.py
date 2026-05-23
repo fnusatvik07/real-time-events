@@ -20,13 +20,14 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from _pretty import (
     banner, demo, divider,
     request_line, request_body, show_response,
-    lesson, note, info, ok, summary_table,
+    lesson, note, info, ok, summary_table, preflight_check,
     GREEN, YELLOW, CYAN, DIM, BOLD, RESET,
 )
 
 import httpx
 
 BASE = "http://127.0.0.1:8103"
+preflight_check(BASE, expected_keyword="Uber-style ride dispatch")
 
 
 banner(

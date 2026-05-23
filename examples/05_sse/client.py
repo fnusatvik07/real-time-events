@@ -19,13 +19,14 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from _pretty import (
     banner, demo, divider,
     request_line, request_body, response_line,
-    lesson, note, info, ok, summary_table,
+    lesson, note, info, ok, summary_table, preflight_check,
     GREEN, CYAN, YELLOW, MAGENTA, DIM, BOLD, RESET,
 )
 
 import httpx
 
 URL = "http://127.0.0.1:8105/chat"
+preflight_check("http://127.0.0.1:8105", expected_keyword="SSE chat streaming")
 
 
 banner(

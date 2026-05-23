@@ -23,7 +23,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from _pretty import (
     banner, demo, divider,
     request_line, response_line, request_body, response_body,
-    show_response, lesson, note, info, ok, fail,
+    show_response, lesson, note, info, ok, fail, preflight_check,
     summary_table,
     GREEN, YELLOW, RED, CYAN, DIM, BOLD, RESET,
 )
@@ -33,6 +33,8 @@ import httpx
 BASE = "http://127.0.0.1:8102"
 POLL_INTERVAL_SEC = 1.5
 MAX_POLLS = 40   # safety net
+
+preflight_check(BASE, expected_keyword="Swiggy-style order tracker")
 
 
 banner(

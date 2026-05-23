@@ -24,13 +24,14 @@ from _pretty import (
     banner, demo, divider,
     request_line, request_header, request_body,
     show_response,
-    lesson, note, warn,
+    lesson, note, warn, preflight_check,
     CYAN, DIM, BOLD, RESET, MAGENTA, GREEN, YELLOW,
 )
 
 import httpx
 
 BASE = "http://127.0.0.1:8101"
+preflight_check(BASE, expected_keyword="HTTP basics demo")
 
 
 # ---------------------------------------------------------------------------

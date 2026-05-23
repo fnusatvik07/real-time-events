@@ -181,3 +181,51 @@ def summary_table(rows: list[tuple[str, str]]) -> None:
     for k, v in rows:
         print(f"  {DIM}{k:<{key_width}}{RESET}   {v}")
     print()
+
+
+def preflight_check(base_url: str, expected_keyword: str = "") -> None:
+    """Verify the server at base_url is reachable and is the right one.
+
+    Hits GET / and checks the response. Prints a clear, actionable error
+    and exits if anything is off. This catches the very common case of an
+    OLD uvicorn from a previous example still being bound to the port, so
+    the client sees mysterious 404s on endpoints the new server has but
+    the old one didn't.
+    """
+    import httpx
+    port = base_url.rsplit(":", 1)[-1].split("/")[0]
+
+    try:
+        r = httpx.get(f"{base_url}/", timeout=3)
+    except httpx.HTTPError as e:
+        print()
+        print(f"  {RED}{BOLD}ERROR{RESET}     could not reach the server at {base_url}")
+        print(f"            ({e})")
+        print()
+        print(f"  {YELLOW}{BOLD}FIX{RESET}       start the server in another terminal:")
+        print()
+        print(f"            {CYAN}uvicorn server:app --port {port}{RESET}")
+        print()
+        sys.exit(1)
+
+    if r.status_code != 200:
+        print()
+        print(f"  {RED}{BOLD}ERROR{RESET}     server at {base_url} returned {r.status_code} for GET /")
+        print(f"            (expected 200 with an info page)")
+        print()
+        sys.exit(1)
+
+    if expected_keyword and expected_keyword.lower() not in r.text.lower():
+        print()
+        print(f"  {RED}{BOLD}ERROR{RESET}     port {port} is serving the WRONG server.")
+        print(f"            expected the response to mention {expected_keyword!r}")
+        print(f"            but got: {r.text[:120]}{'...' if len(r.text) > 120 else ''}")
+        print()
+        print(f"  {YELLOW}{BOLD}LIKELY CAUSE{RESET}  an OLD uvicorn from a previous example is still")
+        print(f"            running on port {port}. Two-step fix:")
+        print()
+        print(f"            {CYAN}1.  pkill -f uvicorn{RESET}                    {DIM}# kill all stale servers{RESET}")
+        print(f"            {CYAN}2.  uvicorn server:app --port {port}{RESET}     {DIM}# start the right one (from THIS folder){RESET}")
+        print(f"            {CYAN}3.  python client.py{RESET}                     {DIM}# rerun this script{RESET}")
+        print()
+        sys.exit(1)

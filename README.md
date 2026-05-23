@@ -20,6 +20,7 @@ realtime/
 ├── projects/
 │   ├── project_1_streaming_chat/      ← chat UI showing polling vs SSE vs WS side-by-side
 │   └── project_2_webhook_dashboard/   ← webhook intake + live SSE dashboard
+├── postman/         ← Postman collection covering every HTTP endpoint (43 requests)
 └── .env             ← OpenAI / Supabase / MongoDB keys (pre-populated)
 ```
 

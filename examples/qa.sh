@@ -184,8 +184,12 @@ if [ "$TOKEN_EVENTS" -ge 5 ]; then
 else
     fail "expected >=5 raw token events shown, got $TOKEN_EVENTS"
 fi
-assert_contains "assembled response mentions Mumbai foods" "$OUT" "Vada Pav" "Pav Bhaji"
-assert_contains "stream stats printed"                     "$OUT" "Total tokens received" "Time to first token"
+# LLM responses vary, so we don't assert on specific dish names. We check
+# that the prompt was echoed in event: open, that tokens flowed, that the
+# stream completed cleanly, and that the assembled-response section ran.
+assert_contains "prompt echoed in event:open" "$OUT" "Mumbai street foods"
+assert_contains "stream completed cleanly"    "$OUT" "Assembled response"
+assert_contains "stream stats printed"        "$OUT" "Total tokens received" "Time to first token"
 stop_all_servers
 
 # ============================================================
@@ -200,10 +204,10 @@ fi
 # Start a driver in the background, then run the customer in the foreground.
 # They join the same order; the driver script and customer script send messages
 # that each one will see arrive on the other.
-(cd "$HERE/06_websockets" && $PYTHON client.py --role driver --order qa_room 2>&1 > "$LOGS/06_driver.log") &
+(cd "$HERE/06_websockets" && $PYTHON client.py --role driver --order qa_room --script 2>&1 > "$LOGS/06_driver.log") &
 DRIVER_PID=$!
 sleep 0.5
-OUT=$(cd "$HERE/06_websockets" && $PYTHON client.py --role customer --order qa_room 2>&1)
+OUT=$(cd "$HERE/06_websockets" && $PYTHON client.py --role customer --order qa_room --script 2>&1)
 wait $DRIVER_PID 2>/dev/null
 # Customer should have SENT its own messages AND received the driver's messages
 assert_contains "customer connected"                "$OUT" "connected as customer"

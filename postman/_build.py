@@ -523,20 +523,27 @@ folder_06 = folder(
     "06 - WebSockets - delivery chat (port 8106)",
     "WebSocket-based two-way chat between a delivery driver and a customer.\n\n"
     "Start the server first:\n\n    cd examples/06_websockets && uvicorn server:app --port 8106\n\n"
-    "For the WebSocket itself, Postman's HTTP requests can't open WS connections. "
-    "Use: File -> New -> WebSocket Request, paste this URL, and click Connect:\n\n"
+    "FOR THE ACTUAL CHAT (HTTP requests can't open WS):\n"
+    "Use Postman's WebSocket Request type: File -> New -> WebSocket Request.\n"
+    "Paste a URL, click Connect:\n\n"
     "    ws://127.0.0.1:8106/chat?role=customer&order=order_raj_001\n\n"
-    "Open a second WebSocket Request in another tab with role=driver to chat both ways.\n\n"
-    "Messages to send (any of these as text payload):\n"
-    '    {\"type\": \"msg\", \"text\": \"hello from postman\"}\n'
-    '    {\"type\": \"typing\", \"on\": true}\n',
+    "Open a second WebSocket Request in another tab with role=driver. Now you can type "
+    "messages in either tab and watch them appear in the other - real bidirectional "
+    "chat over one TCP connection.\n\n"
+    "Send these JSON payloads as text from either tab:\n"
+    '    {\"type\": \"msg\", \"text\": \"hi from postman\"}\n'
+    '    {\"type\": \"typing\", \"on\": true}\n\n'
+    "The HTTP requests in this folder are just for inspecting state - the actual "
+    "demo lives in the WebSocket tabs above.",
     [
         named("GET /", req("GET", "{{base_8106}}/",
-            description="Info page + example WS URLs.")),
+            description="Info page + example WS URLs to paste into Postman's WebSocket Request.")),
 
         named("GET /sessions  (debug: list active chat rooms)",
             req("GET", "{{base_8106}}/sessions",
-                description="Lists the in-memory rooms and how many of each role are connected.")),
+                description="Lists the in-memory rooms and which roles are connected to each. "
+                            "Useful for confirming both your customer and driver WS tabs joined "
+                            "the same order id.")),
     ],
 )
 

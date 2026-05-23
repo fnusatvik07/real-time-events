@@ -4,15 +4,18 @@ Realistic scenario: Raj's chicken biryani is on the way. He needs to tell rider 
 
 SSE wouldn't work (server-to-client only). Polling would be terrible (each message takes ~poll_interval to be seen). This is the textbook WebSocket fit.
 
-## What the server does
+## Two modes
 
-`WS /chat?role=customer|driver&order=<id>`:
-- Either party connects with their role and the order id (which acts as the chat "room")
-- Both parties connecting with the same order id join the same room
-- Each `{"type":"msg","text":"..."}` message is broadcast to everyone in the room
-- Typing indicators and presence updates flow on the same connection
+The client supports two modes:
 
-## Run
+| Mode | Flag | Use it for |
+|------|------|-----------|
+| **Interactive** (default) | (none) | **Live class demo.** You actually type messages and the other side sees them. Real conversation. |
+| **Scripted** | `--script` | Solo run / QA. Each side fires a pre-written timeline on a timer, no typing needed. |
+
+For teaching, use **interactive**. The whole point of WebSockets is that both sides can talk anytime - prove it by actually typing.
+
+## Run (interactive - the demo)
 
 **Terminal 1** (the server):
 ```bash
@@ -32,36 +35,72 @@ cd examples/06_websockets
 python client.py --role driver
 ```
 
-Each client sends a scripted set of messages with realistic delays. The output on each terminal shows messages flowing in both directions live.
+Now type in either terminal and press Enter. The message appears in BOTH terminals (the sender sees `-> me ...`, the other side sees `<- customer ...` or `<- driver ...`).
 
-## What you'll see
+Special commands at the prompt:
+
+| Type | What it does |
+|------|-------------|
+| any text + Enter | Sends as a chat message |
+| `/typing` + Enter | Sends a typing indicator (the other side sees "customer is typing...") |
+| `/q` + Enter | Disconnect and exit |
+
+## What a live demo looks like
 
 In the **customer** terminal:
 
 ```
-==> Demo 2: Chat is live - watch the messages flow in both directions
-
-  PRESENCE  driver joined the chat
-  TYPING    driver is typing...
-  TYPING    driver is not typing...
-  RECV      driver   Hi Raj! I just picked up your order. 6 minutes away.
-  SENT      me ->    Hi Sam! Are you nearby?
-  TYPING    driver is typing...
-  RECV      driver   Got it, will call when I arrive.
-  SENT      me ->    Apartment 5C. The buzzer is broken - please call me at 9876543210
-  RECV      driver   Reaching in 1 min. Looking for blue shirt.
-  SENT      me ->    I'm waiting downstairs in a blue shirt.
-  SENT      me ->    Thanks! 5 star rating coming your way.
+  * driver joined the chat
+  > Hi Sam, are you nearby?_
 ```
 
-And the **driver** terminal sees the mirror image (their own SENT lines and the customer's RECV lines).
+You type. You press Enter. Meanwhile in the **driver** terminal:
+
+```
+  <- customer  Hi Sam, are you nearby?
+  > _
+```
+
+Driver types `5 min, picking up your order now` and presses Enter. In the **customer** terminal:
+
+```
+  -> me        Hi Sam, are you nearby?
+  <- driver    5 min, picking up your order now
+  > _
+```
+
+Both terminals scrolling live. That's the WebSocket demo - real bidirectional traffic, no polling, no special infrastructure, all over one TCP connection.
+
+## Run (scripted - for QA or solo)
+
+If you don't have a second person at the keyboard, scripted mode is fine:
+
+```bash
+# Terminal 2:
+python client.py --role customer --script
+
+# Terminal 3:
+python client.py --role driver --script
+```
+
+Each side fires its pre-written timeline. You'll see realistic chat output without typing anything. Same protocol on the wire.
+
+## What the server does
+
+`WS /chat?role=customer|driver&order=<id>`:
+
+- Either party connects with their role and the order id (which is the chat "room")
+- Both parties connecting with the same order id join the same room
+- Each `{"type":"msg","text":"..."}` message is broadcast to everyone in the room (including the sender, so the sender's UI can confirm "your message was delivered")
+- Typing indicators and presence updates flow on the same connection
 
 ## Talking points
 
 - **One TCP connection, many messages.** Compare with HTTP where each message is its own request/response. With WebSockets the connection stays open for the entire conversation.
 - **Symmetric send/receive.** Both sides have the same API. Compare with SSE where only the server can push.
 - **Typing indicators are basically free.** They're just small extra messages on the same channel.
-- **Scaling.** A single Python process can hold ~10-50K open WS connections with tuning. Past that you need a pub-sub backbone (Redis) so messages broadcast across multiple servers.
+- **The server's job is small.** Verify auth on connect, track who's in which room, forward messages. ~30 lines of code.
+- **Scaling.** A single Python process holds ~10-50K open WS connections with tuning. Past that you need a pub-sub backbone (Redis) so messages broadcast across multiple servers.
 
 ## Test broadcast with a third party
 
@@ -71,7 +110,7 @@ Open a fourth terminal and connect a **second customer** to the same order:
 python client.py --role customer --order order_raj_001
 ```
 
-Now there are 3 clients in the room. Every message goes to all 3. This shows broadcast scaling naturally - the server just iterates its in-memory list of connections.
+Now there are 3 clients in the room. Every message goes to all 3. This shows broadcast scaling naturally.
 
 ## Try it from the browser console
 

@@ -23,8 +23,70 @@ OUT = HERE / "real-time-workshop.postman_collection.json"
 # Helpers
 # ---------------------------------------------------------------------------
 def url(raw: str) -> dict:
-    """Build a Postman 'url' object from a {{var}}-style raw URL."""
-    return {"raw": raw}
+    """Build a properly-structured Postman v2.1 URL object.
+
+    Postman's UI reads `host`, `path`, `port`, and `query` fields - NOT
+    just `raw`. If you only set `raw`, the URL bar shows blank and the
+    query params tab is empty. Build the structured fields too.
+    """
+    # Split off query string
+    if "?" in raw:
+        path_part, query_str = raw.split("?", 1)
+    else:
+        path_part, query_str = raw, ""
+
+    # Detect host. Two forms we use:
+    #   {{base_NNNN}}/some/path     -> host = ["{{base_NNNN}}"]
+    #   http://127.0.0.1:NNNN/path  -> host = ["127.0.0.1"], port = "NNNN"
+    if path_part.startswith("{{"):
+        end = path_part.find("}}") + 2
+        host_part = path_part[:end]
+        rest = path_part[end:]
+        port = None
+    elif "://" in path_part:
+        scheme_end = path_part.find("://") + 3
+        next_slash = path_part.find("/", scheme_end)
+        if next_slash == -1:
+            host_with_port = path_part[scheme_end:]
+            rest = ""
+        else:
+            host_with_port = path_part[scheme_end:next_slash]
+            rest = path_part[next_slash:]
+        if ":" in host_with_port:
+            host_part, port = host_with_port.rsplit(":", 1)
+        else:
+            host_part, port = host_with_port, None
+    else:
+        host_part = path_part
+        rest = ""
+        port = None
+
+    # Path segments: split on "/", drop leading empty from the leading slash.
+    if rest.startswith("/"):
+        rest = rest[1:]
+    if rest == "":
+        path_segments: list[str] = [""]   # represents trailing slash
+    else:
+        path_segments = rest.split("/")
+
+    obj: dict = {
+        "raw": raw,
+        "host": [host_part],
+        "path": path_segments,
+    }
+    if port:
+        obj["port"] = port
+
+    if query_str:
+        obj["query"] = []
+        for pair in query_str.split("&"):
+            if "=" in pair:
+                k, v = pair.split("=", 1)
+            else:
+                k, v = pair, ""
+            obj["query"].append({"key": k, "value": v})
+
+    return obj
 
 
 def req(method: str, raw_url: str, *,

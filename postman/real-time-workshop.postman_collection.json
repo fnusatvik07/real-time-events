@@ -108,7 +108,13 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_8101}}/"
+              "raw": "{{base_8101}}/",
+              "host": [
+                "{{base_8101}}"
+              ],
+              "path": [
+                ""
+              ]
             },
             "description": "Lists every endpoint this server exposes."
           }
@@ -119,7 +125,13 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_8101}}/time"
+              "raw": "{{base_8101}}/time",
+              "host": [
+                "{{base_8101}}"
+              ],
+              "path": [
+                "time"
+              ]
             },
             "description": "Pure read - returns server's clock. No state."
           }
@@ -130,7 +142,13 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_8101}}/counter"
+              "raw": "{{base_8101}}/counter",
+              "host": [
+                "{{base_8101}}"
+              ],
+              "path": [
+                "counter"
+              ]
             },
             "description": "A SHARED counter. Important teaching point: the server has DATA (the counter goes up) but no memory of YOU specifically. Anyone calling this same endpoint bumps the same number."
           }
@@ -141,7 +159,13 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_8101}}/me"
+              "raw": "{{base_8101}}/me",
+              "host": [
+                "{{base_8101}}"
+              ],
+              "path": [
+                "me"
+              ]
             },
             "description": "No Authorization header. Server returns 401 with a clue about what header to send."
           }
@@ -157,7 +181,13 @@
               }
             ],
             "url": {
-              "raw": "{{base_8101}}/me"
+              "raw": "{{base_8101}}/me",
+              "host": [
+                "{{base_8101}}"
+              ],
+              "path": [
+                "me"
+              ]
             },
             "description": "Builds a real HS256 JWT for user 'Arjun Kumar' before sending. Server verifies the signature and returns decoded claims (user_id, name, email, scopes)."
           },
@@ -207,7 +237,13 @@
               }
             ],
             "url": {
-              "raw": "{{base_8101}}/me"
+              "raw": "{{base_8101}}/me",
+              "host": [
+                "{{base_8101}}"
+              ],
+              "path": [
+                "me"
+              ]
             },
             "description": "Builds a JWT, modifies the 'name' claim to 'Hacker Admin', but keeps the original signature. The server recomputes the signature over the new payload, finds it doesn't match, and returns 401. This is the whole reason JWTs work."
           },
@@ -252,7 +288,14 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_8101}}/weather/Bengaluru"
+              "raw": "{{base_8101}}/weather/Bengaluru",
+              "host": [
+                "{{base_8101}}"
+              ],
+              "path": [
+                "weather",
+                "Bengaluru"
+              ]
             },
             "description": "The server calls https://wttr.in/Bengaluru and returns a slimmed-down weather response. Demonstrates that real backends are mostly glue between other backends."
           }
@@ -263,7 +306,14 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_8101}}/weather/Mumbai"
+              "raw": "{{base_8101}}/weather/Mumbai",
+              "host": [
+                "{{base_8101}}"
+              ],
+              "path": [
+                "weather",
+                "Mumbai"
+              ]
             }
           }
         },
@@ -273,7 +323,13 @@
             "method": "POST",
             "header": [],
             "url": {
-              "raw": "{{base_8101}}/notes"
+              "raw": "{{base_8101}}/notes",
+              "host": [
+                "{{base_8101}}"
+              ],
+              "path": [
+                "notes"
+              ]
             },
             "description": "Creates a note. Returns 201 Created with the created resource. Save the returned `id` and use it in 'GET /notes/{id}' below.",
             "body": {
@@ -306,7 +362,13 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_8101}}/notes"
+              "raw": "{{base_8101}}/notes",
+              "host": [
+                "{{base_8101}}"
+              ],
+              "path": [
+                "notes"
+              ]
             },
             "description": "Lists all notes currently in memory."
           }
@@ -317,7 +379,14 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_8101}}/notes/{{last_note_id}}"
+              "raw": "{{base_8101}}/notes/{{last_note_id}}",
+              "host": [
+                "{{base_8101}}"
+              ],
+              "path": [
+                "notes",
+                "{{last_note_id}}"
+              ]
             },
             "description": "Fetches the note from the POST above. The POST stored {{last_note_id}} for us."
           }
@@ -328,7 +397,14 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_8101}}/notes/9999"
+              "raw": "{{base_8101}}/notes/9999",
+              "host": [
+                "{{base_8101}}"
+              ],
+              "path": [
+                "notes",
+                "9999"
+              ]
             },
             "description": "Non-existent id - server returns 404 Not Found."
           }
@@ -345,7 +421,13 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_8102}}/"
+              "raw": "{{base_8102}}/",
+              "host": [
+                "{{base_8102}}"
+              ],
+              "path": [
+                ""
+              ]
             },
             "description": "Info page - lists endpoints and the order stages."
           }
@@ -356,7 +438,13 @@
             "method": "POST",
             "header": [],
             "url": {
-              "raw": "{{base_8102}}/orders"
+              "raw": "{{base_8102}}/orders",
+              "host": [
+                "{{base_8102}}"
+              ],
+              "path": [
+                "orders"
+              ]
             },
             "description": "Creates an order and kicks off the background state-machine. Saves {{last_order_id}} for the next request.",
             "body": {
@@ -389,7 +477,14 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_8102}}/orders/{{last_order_id}}"
+              "raw": "{{base_8102}}/orders/{{last_order_id}}",
+              "host": [
+                "{{base_8102}}"
+              ],
+              "path": [
+                "orders",
+                "{{last_order_id}}"
+              ]
             },
             "description": "Returns the current order status. In real life the client would send this on a timer (every 1-2s) and watch for status changes."
           }
@@ -400,7 +495,13 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_8102}}/orders"
+              "raw": "{{base_8102}}/orders",
+              "host": [
+                "{{base_8102}}"
+              ],
+              "path": [
+                "orders"
+              ]
             },
             "description": "Debug: list all in-memory orders."
           }
@@ -417,7 +518,13 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_8103}}/"
+              "raw": "{{base_8103}}/",
+              "host": [
+                "{{base_8103}}"
+              ],
+              "path": [
+                ""
+              ]
             },
             "description": "Info page."
           }
@@ -428,7 +535,13 @@
             "method": "POST",
             "header": [],
             "url": {
-              "raw": "{{base_8103}}/rides"
+              "raw": "{{base_8103}}/rides",
+              "host": [
+                "{{base_8103}}"
+              ],
+              "path": [
+                "rides"
+              ]
             },
             "description": "Creates a ride and kicks off a background driver matcher.",
             "body": {
@@ -461,7 +574,14 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_8103}}/rides/{{last_ride_id}}"
+              "raw": "{{base_8103}}/rides/{{last_ride_id}}",
+              "host": [
+                "{{base_8103}}"
+              ],
+              "path": [
+                "rides",
+                "{{last_ride_id}}"
+              ]
             },
             "description": "Quick snapshot - shows whether a driver has been matched yet."
           }
@@ -472,7 +592,21 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_8103}}/rides/{{last_ride_id}}/wait?timeout=30"
+              "raw": "{{base_8103}}/rides/{{last_ride_id}}/wait?timeout=30",
+              "host": [
+                "{{base_8103}}"
+              ],
+              "path": [
+                "rides",
+                "{{last_ride_id}}",
+                "wait"
+              ],
+              "query": [
+                {
+                  "key": "timeout",
+                  "value": "30"
+                }
+              ]
             },
             "description": "THIS IS THE INTERESTING ONE. The server will hold the request open until a driver accepts. You'll see Postman's spinner spin for a few seconds, then suddenly the response appears with full driver info (name, vehicle, rating, ETA). Increase Postman's request timeout to 60s+ in Settings if needed."
           }
@@ -483,7 +617,21 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_8103}}/rides/{{last_ride_id}}/wait?timeout=2"
+              "raw": "{{base_8103}}/rides/{{last_ride_id}}/wait?timeout=2",
+              "host": [
+                "{{base_8103}}"
+              ],
+              "path": [
+                "rides",
+                "{{last_ride_id}}",
+                "wait"
+              ],
+              "query": [
+                {
+                  "key": "timeout",
+                  "value": "2"
+                }
+              ]
             },
             "description": "Short server-side timeout to demonstrate the timed_out:true return. If the ride was already accepted, this returns immediately."
           }
@@ -500,7 +648,13 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_8104}}/"
+              "raw": "{{base_8104}}/",
+              "host": [
+                "{{base_8104}}"
+              ],
+              "path": [
+                ""
+              ]
             },
             "description": "Info page + list of orders + count of events seen so far."
           }
@@ -511,7 +665,13 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_8104}}/orders"
+              "raw": "{{base_8104}}/orders",
+              "host": [
+                "{{base_8104}}"
+              ],
+              "path": [
+                "orders"
+              ]
             }
           }
         },
@@ -526,7 +686,14 @@
               }
             ],
             "url": {
-              "raw": "{{base_8104}}/webhooks/stripe"
+              "raw": "{{base_8104}}/webhooks/stripe",
+              "host": [
+                "{{base_8104}}"
+              ],
+              "path": [
+                "webhooks",
+                "stripe"
+              ]
             },
             "description": "Properly signed event. Server marks the order paid, notifies the restaurant, queues an SMS. Returns 200 with duplicate:false.",
             "body": {
@@ -574,7 +741,14 @@
               }
             ],
             "url": {
-              "raw": "{{base_8104}}/webhooks/stripe"
+              "raw": "{{base_8104}}/webhooks/stripe",
+              "host": [
+                "{{base_8104}}"
+              ],
+              "path": [
+                "webhooks",
+                "stripe"
+              ]
             },
             "description": "HARD-CODED event id. Send this TWICE. First time: 200 with duplicate:false. Second time: 200 with duplicate:true - the dedup logic stops us from double-processing.",
             "body": {
@@ -617,7 +791,14 @@
               }
             ],
             "url": {
-              "raw": "{{base_8104}}/webhooks/stripe"
+              "raw": "{{base_8104}}/webhooks/stripe",
+              "host": [
+                "{{base_8104}}"
+              ],
+              "path": [
+                "webhooks",
+                "stripe"
+              ]
             },
             "description": "A refund event for the same order. Receiver marks it refunded and would tell the restaurant to cancel prep.",
             "body": {
@@ -669,7 +850,14 @@
               }
             ],
             "url": {
-              "raw": "{{base_8104}}/webhooks/stripe"
+              "raw": "{{base_8104}}/webhooks/stripe",
+              "host": [
+                "{{base_8104}}"
+              ],
+              "path": [
+                "webhooks",
+                "stripe"
+              ]
             },
             "description": "No pre-request signing script. The hardcoded fake signature won't match anything the server computes -> 401. This is the demonstration that signature verification is what stops fraudsters.",
             "body": {
@@ -695,7 +883,13 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_8105}}/"
+              "raw": "{{base_8105}}/",
+              "host": [
+                "{{base_8105}}"
+              ],
+              "path": [
+                ""
+              ]
             },
             "description": "Info page."
           }
@@ -715,7 +909,13 @@
               }
             ],
             "url": {
-              "raw": "{{base_8105}}/chat"
+              "raw": "{{base_8105}}/chat",
+              "host": [
+                "{{base_8105}}"
+              ],
+              "path": [
+                "chat"
+              ]
             },
             "description": "Server streams ~50 events (one per word) ~80ms apart. Postman will show the response body growing in real-time. Each event is id:N\\nevent:token\\ndata:{...}\\n\\n - the SSE wire format.",
             "body": {
@@ -741,7 +941,13 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_8106}}/"
+              "raw": "{{base_8106}}/",
+              "host": [
+                "{{base_8106}}"
+              ],
+              "path": [
+                ""
+              ]
             },
             "description": "Info page + example WS URLs."
           }
@@ -752,7 +958,13 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_8106}}/sessions"
+              "raw": "{{base_8106}}/sessions",
+              "host": [
+                "{{base_8106}}"
+              ],
+              "path": [
+                "sessions"
+              ]
             },
             "description": "Lists the in-memory rooms and how many of each role are connected."
           }
@@ -769,7 +981,14 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_8000}}/api/about"
+              "raw": "{{base_8000}}/api/about",
+              "host": [
+                "{{base_8000}}"
+              ],
+              "path": [
+                "api",
+                "about"
+              ]
             },
             "description": "Lists all 3 patterns and their endpoints."
           }
@@ -780,7 +999,15 @@
             "method": "POST",
             "header": [],
             "url": {
-              "raw": "{{base_8000}}/api/polling/start"
+              "raw": "{{base_8000}}/api/polling/start",
+              "host": [
+                "{{base_8000}}"
+              ],
+              "path": [
+                "api",
+                "polling",
+                "start"
+              ]
             },
             "description": "Returns a job_id. Save it for the polling status endpoint.",
             "body": {
@@ -813,7 +1040,16 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_8000}}/api/polling/status/{{polling_job_id}}"
+              "raw": "{{base_8000}}/api/polling/status/{{polling_job_id}}",
+              "host": [
+                "{{base_8000}}"
+              ],
+              "path": [
+                "api",
+                "polling",
+                "status",
+                "{{polling_job_id}}"
+              ]
             },
             "description": "Poll this every second until status is 'done'. Then fetch the result."
           }
@@ -824,7 +1060,16 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_8000}}/api/polling/result/{{polling_job_id}}"
+              "raw": "{{base_8000}}/api/polling/result/{{polling_job_id}}",
+              "host": [
+                "{{base_8000}}"
+              ],
+              "path": [
+                "api",
+                "polling",
+                "result",
+                "{{polling_job_id}}"
+              ]
             },
             "description": "Returns 409 if the job isn't done yet. 200 with the response text once it is."
           }
@@ -844,7 +1089,15 @@
               }
             ],
             "url": {
-              "raw": "{{base_8000}}/api/sse/chat"
+              "raw": "{{base_8000}}/api/sse/chat",
+              "host": [
+                "{{base_8000}}"
+              ],
+              "path": [
+                "api",
+                "sse",
+                "chat"
+              ]
             },
             "description": "Postman will show the streaming response body filling in word-by-word.",
             "body": {
@@ -870,7 +1123,14 @@
             "method": "POST",
             "header": [],
             "url": {
-              "raw": "{{base_9000}}/admin/reset"
+              "raw": "{{base_9000}}/admin/reset",
+              "host": [
+                "{{base_9000}}"
+              ],
+              "path": [
+                "admin",
+                "reset"
+              ]
             }
           }
         },
@@ -880,7 +1140,20 @@
             "method": "POST",
             "header": [],
             "url": {
-              "raw": "{{base_9000}}/simulate/burst?n=5"
+              "raw": "{{base_9000}}/simulate/burst?n=5",
+              "host": [
+                "{{base_9000}}"
+              ],
+              "path": [
+                "simulate",
+                "burst"
+              ],
+              "query": [
+                {
+                  "key": "n",
+                  "value": "5"
+                }
+              ]
             },
             "description": "Server-side helper that POSTs 5 properly-signed events at /webhook/payment. Each appears live in any open /stream subscriber."
           }
@@ -891,7 +1164,14 @@
             "method": "POST",
             "header": [],
             "url": {
-              "raw": "{{base_9000}}/simulate/replay"
+              "raw": "{{base_9000}}/simulate/replay",
+              "host": [
+                "{{base_9000}}"
+              ],
+              "path": [
+                "simulate",
+                "replay"
+              ]
             }
           }
         },
@@ -901,7 +1181,14 @@
             "method": "POST",
             "header": [],
             "url": {
-              "raw": "{{base_9000}}/simulate/forgery"
+              "raw": "{{base_9000}}/simulate/forgery",
+              "host": [
+                "{{base_9000}}"
+              ],
+              "path": [
+                "simulate",
+                "forgery"
+              ]
             }
           }
         },
@@ -911,7 +1198,19 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_9000}}/events?since=0"
+              "raw": "{{base_9000}}/events?since=0",
+              "host": [
+                "{{base_9000}}"
+              ],
+              "path": [
+                "events"
+              ],
+              "query": [
+                {
+                  "key": "since",
+                  "value": "0"
+                }
+              ]
             },
             "description": "Returns events with seq > since. The polling dashboard uses this on a 2-second loop."
           }
@@ -927,7 +1226,19 @@
               }
             ],
             "url": {
-              "raw": "{{base_9000}}/stream?since=0"
+              "raw": "{{base_9000}}/stream?since=0",
+              "host": [
+                "{{base_9000}}"
+              ],
+              "path": [
+                "stream"
+              ],
+              "query": [
+                {
+                  "key": "since",
+                  "value": "0"
+                }
+              ]
             },
             "description": "Subscribe to the live event stream. Postman will keep this open and show new events as they arrive. Fire a burst from another tab to see events appear here in real-time."
           }
@@ -943,7 +1254,14 @@
               }
             ],
             "url": {
-              "raw": "{{base_9000}}/webhook/payment"
+              "raw": "{{base_9000}}/webhook/payment",
+              "host": [
+                "{{base_9000}}"
+              ],
+              "path": [
+                "webhook",
+                "payment"
+              ]
             },
             "description": "Send a signed event directly (instead of using the burst simulator). Uses project 2's webhook_secret_p2.",
             "body": {

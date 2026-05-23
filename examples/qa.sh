@@ -99,108 +99,124 @@ assert_contains "lessons printed"             "$OUT" "LESSON"
 stop_all_servers
 
 # ============================================================
-# Example 02 - Short polling
+# Example 02 - Short polling (Swiggy order tracker)
 # ============================================================
-hdr "02_short_polling  (port 8102)"
+hdr "02_short_polling  (port 8102 - Swiggy order tracker)"
 if start_server "$HERE/02_short_polling" "server" 8102 "$LOGS/02.log"; then
     ok "server came up on :8102"
 else
     fail "server did not start"
 fi
-VAL=$(curl -s http://127.0.0.1:8102/value)
-assert_contains "/value endpoint returns counter"     "$VAL" '"counter":'
+# Server should return list of stages and an info page
+ROOT_RESP=$(curl -s http://127.0.0.1:8102/)
+assert_contains "info page lists order stages" "$ROOT_RESP" "placed" "delivered" "restaurant_confirmed"
+# Create an order and verify shape
+ORDER_RESP=$(curl -s -X POST http://127.0.0.1:8102/orders \
+    -H "content-type: application/json" \
+    -d '{"customer":"Raj","item":"Biryani","amount_inr":450}')
+assert_contains "POST /orders returns id+status"  "$ORDER_RESP" '"id"' '"status":"placed"' '"customer":"Raj"'
+# (We don't run the full client here because it takes ~40s. Smoke-test only.)
 stop_all_servers
 
 # ============================================================
-# Example 03 - Long polling
+# Example 03 - Long polling (Uber ride dispatch)
 # ============================================================
-hdr "03_long_polling  (port 8103)"
+hdr "03_long_polling  (port 8103 - Uber ride dispatch)"
 if start_server "$HERE/03_long_polling" "server" 8103 "$LOGS/03.log"; then
     ok "server came up on :8103"
 else
     fail "server did not start"
 fi
-# Long poll with since=999 (counter is 0) and short timeout -> should time out
-TIMING=$($PYTHON - <<'PY'
-import time, httpx
-t0 = time.time()
-r = httpx.get("http://127.0.0.1:8103/wait?since=999&timeout=1", timeout=5)
-print(f"{round((time.time()-t0)*1000)}||{r.text}")
-PY
-)
-ELAPSED="${TIMING%%||*}"
-BODY="${TIMING##*||}"
-assert_contains "long-poll times out cleanly (${ELAPSED}ms)" "$BODY" '"timed_out":true'
-
-# Long poll with since=-1 -> server has counter=0 > -1, returns immediately
-RESP=$(curl -s "http://127.0.0.1:8103/wait?since=-1&timeout=5")
-assert_contains "long-poll returns immediately when data available" "$RESP" '"timed_out":false'
+# Create a ride
+RIDE=$(curl -s -X POST http://127.0.0.1:8103/rides \
+    -H "content-type: application/json" \
+    -d '{"rider":"Raj","pickup":"Indiranagar","dropoff":"Airport"}')
+assert_contains "POST /rides returns id and status" "$RIDE" '"id":"ride_' '"status":"searching"'
+RIDE_ID=$($PYTHON -c "import sys,json; print(json.loads(sys.argv[1])['id'])" "$RIDE")
+# Long-poll with short timeout; should return either timed_out:true or the accepted ride
+WAIT_RESP=$(curl -s "http://127.0.0.1:8103/rides/$RIDE_ID/wait?timeout=15")
+if grep -q '"status":"accepted"' <<<"$WAIT_RESP"; then
+    assert_contains "long-poll resolved with driver" "$WAIT_RESP" '"driver"' '"status":"accepted"'
+elif grep -q '"timed_out":true' <<<"$WAIT_RESP"; then
+    ok "long-poll returned timed_out (driver took longer than 15s)"
+else
+    fail "long-poll returned unexpected: $WAIT_RESP"
+fi
 stop_all_servers
 
 # ============================================================
-# Example 04 - Webhooks
+# Example 04 - Webhooks (Stripe payment for biryani)
 # ============================================================
-hdr "04_webhooks  (port 8104)"
+hdr "04_webhooks  (port 8104 - Stripe payment receiver)"
 if start_server "$HERE/04_webhooks" "receiver" 8104 "$LOGS/04.log"; then
     ok "receiver came up on :8104"
 else
     fail "receiver did not start"
 fi
 OUT=$(cd "$HERE/04_webhooks" && $PYTHON sender.py 2>&1)
-# We assert by extracting per-case lines using grep -A2
-CASE1=$(grep -A2 "Case 1" <<<"$OUT")
-CASE2=$(grep -A2 "Case 2" <<<"$OUT")
-CASE3=$(grep -A2 "Case 3" <<<"$OUT")
-assert_contains "case 1 (signed event) accepted"   "$CASE1" "HTTP 200" "'duplicate': False"
-assert_contains "case 2 (replay) deduped"          "$CASE2" "HTTP 200" "'duplicate': True"
-assert_contains "case 3 (unsigned) rejected"       "$CASE3" "HTTP 401"
+assert_contains "all 4 webhook cases ran"    "$OUT" "Case 1:" "Case 2:" "Case 3:" "Case 4:"
+assert_contains "case 1 accepted (200)"      "$OUT" '"duplicate": false' "payment_intent.succeeded"
+assert_contains "case 2 deduped (duplicate)" "$OUT" '"duplicate": true'
+assert_contains "case 3 refund processed"    "$OUT" "charge.refunded"
+assert_contains "case 4 forged event rejected (401)" "$OUT" "401" "invalid signature"
+# Check receiver logs printed the worker actions
+RECEIVER_LOG=$(cat "$LOGS/04.log")
+assert_contains "receiver logged worker actions" "$RECEIVER_LOG" "ACCEPTED" "would: marked order"
 stop_all_servers
 
 # ============================================================
-# Example 05 - SSE
+# Example 05 - SSE (Mumbai street food chat)
 # ============================================================
-hdr "05_sse  (port 8105)"
+hdr "05_sse  (port 8105 - chat streaming)"
 if start_server "$HERE/05_sse" "server" 8105 "$LOGS/05.log"; then
     ok "server came up on :8105"
 else
     fail "server did not start"
 fi
 OUT=$(cd "$HERE/05_sse" && $PYTHON client.py 2>&1)
-TOKEN_COUNT=$(grep -c "data: token-" <<<"$OUT")
-if [ "$TOKEN_COUNT" = "10" ]; then ok "received 10 token events"; else fail "expected 10 token events, got $TOKEN_COUNT"; fi
-assert_contains "received done event"          "$OUT" "event: done"
-assert_contains "stream closed cleanly"        "$OUT" "stream closed"
+TOKEN_EVENTS=$(grep -c "'event: token'" <<<"$OUT")
+if [ "$TOKEN_EVENTS" -ge 5 ]; then
+    ok "received raw token events ($TOKEN_EVENTS shown)"
+else
+    fail "expected >=5 raw token events shown, got $TOKEN_EVENTS"
+fi
+assert_contains "assembled response mentions Mumbai foods" "$OUT" "Vada Pav" "Pav Bhaji"
+assert_contains "stream stats printed"                     "$OUT" "Total tokens received" "Time to first token"
 stop_all_servers
 
 # ============================================================
-# Example 06 - WebSockets
+# Example 06 - WebSockets (delivery chat)
 # ============================================================
-hdr "06_websockets  (port 8106)"
+hdr "06_websockets  (port 8106 - driver/customer chat)"
 if start_server "$HERE/06_websockets" "server" 8106 "$LOGS/06.log"; then
     ok "server came up on :8106"
 else
     fail "server did not start"
 fi
-OUT=$(cd "$HERE/06_websockets" && $PYTHON client.py 2>&1)
-SEND_COUNT=$(grep -c "SEND:" <<<"$OUT")
-RECV_COUNT=$(grep -c "RECV:" <<<"$OUT")
-if [ "$SEND_COUNT" = "3" ]; then ok "client sent 3 messages"; else fail "client sent $SEND_COUNT messages (expected 3)"; fi
-if [ "$RECV_COUNT" -ge 3 ]; then ok "client received >= 3 broadcasts (got $RECV_COUNT)"; else fail "client received only $RECV_COUNT broadcasts"; fi
+# Start a driver in the background, then run the customer in the foreground.
+# They join the same order; the driver script and customer script send messages
+# that each one will see arrive on the other.
+(cd "$HERE/06_websockets" && $PYTHON client.py --role driver --order qa_room 2>&1 > "$LOGS/06_driver.log") &
+DRIVER_PID=$!
+sleep 0.5
+OUT=$(cd "$HERE/06_websockets" && $PYTHON client.py --role customer --order qa_room 2>&1)
+wait $DRIVER_PID 2>/dev/null
+# Customer should have SENT its own messages AND received the driver's messages
+assert_contains "customer connected"                "$OUT" "connected as customer"
+assert_contains "customer sent its scripted lines"  "$OUT" "buzzer is broken" "blue shirt"
+assert_contains "customer received driver messages" "$OUT" "Hi Raj" "6 minutes away" "Looking for blue shirt"
 stop_all_servers
 
 # ============================================================
-# Example 07 - OpenAI streaming
+# Example 07 - OpenAI streaming (restaurant recommender agent)
 # ============================================================
 hdr "07_openai_streaming  (no server; talks to api.openai.com)"
 if [ -f "$ROOT/.env" ] && grep -q "^OPENAI_API_KEY=sk-" "$ROOT/.env"; then
     ok "OPENAI_API_KEY found in .env"
     OUT=$(cd "$HERE/07_openai_streaming" && $PYTHON client.py 2>&1)
-    if grep -qi "one" <<<"$OUT" && grep -qi "ten" <<<"$OUT"; then
-        ok "LLM streamed words 'one' through 'ten'"
-    else
-        fail "LLM stream output unexpected (got: $(head -5 <<<"$OUT"))"
-    fi
-    assert_contains "metrics reported (first token, chunks)" "$OUT" "first token:" "chunks"
+    assert_contains "agent persona shown"       "$OUT" "SYSTEM" "restaurant recommendation agent"
+    assert_contains "agent streamed a response" "$OUT" "AGENT"
+    assert_contains "stream stats printed"      "$OUT" "Time to first token" "Total stream duration"
 else
     fail "OPENAI_API_KEY missing or malformed in .env"
 fi

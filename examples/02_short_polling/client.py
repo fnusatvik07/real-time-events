@@ -21,7 +21,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from _pretty import (
-    banner, demo, divider,
+    banner, demo, divider, pause,
     request_line, response_line, request_body, response_body,
     show_response, lesson, note, info, ok, fail, preflight_check,
     summary_table,
@@ -54,6 +54,7 @@ order = r.json()
 order_id = order["id"]
 
 divider()
+pause()
 
 
 # ---- Step 2: poll until delivered -------------------------------------
@@ -96,6 +97,7 @@ else:
     print(f"  {RED}reached MAX_POLLS without seeing 'delivered'.{RESET}")
 
 divider()
+pause()
 
 
 # ---- Step 3: summarise the waste --------------------------------------
@@ -123,6 +125,7 @@ lesson(
 )
 
 divider()
+pause()
 
 
 # ---- Step 4: show how to lower the waste ------------------------------

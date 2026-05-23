@@ -18,7 +18,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from _pretty import (
-    banner, demo, divider,
+    banner, demo, divider, pause,
     request_line, request_body, show_response,
     lesson, note, info, ok, summary_table, preflight_check,
     GREEN, YELLOW, CYAN, DIM, BOLD, RESET,
@@ -46,6 +46,7 @@ show_response(r)
 ride_id = r.json()["id"]
 
 divider()
+pause()
 
 
 # ---- Step 2: long-poll for driver acceptance --------------------------
@@ -71,6 +72,7 @@ show_response(r)
 driver = r.json().get("driver")
 
 divider()
+pause()
 
 
 # ---- Step 3: summarise vs short polling -------------------------------
@@ -101,6 +103,7 @@ lesson(
 )
 
 divider()
+pause()
 
 
 # ---- Step 4: simulate the timeout case --------------------------------

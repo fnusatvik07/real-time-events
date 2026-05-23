@@ -17,7 +17,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from _pretty import (
-    banner, demo, divider,
+    banner, demo, divider, pause,
     request_line, request_body, response_line,
     lesson, note, info, ok, summary_table, preflight_check,
     GREEN, CYAN, YELLOW, MAGENTA, DIM, BOLD, RESET,
@@ -30,23 +30,27 @@ preflight_check("http://127.0.0.1:8105", expected_keyword="SSE chat streaming")
 
 
 banner(
-    "SSE - a ChatGPT-style streaming chat response",
-    "the server holds ONE HTTP connection open and pushes tokens down it",
+    "SSE - a real LLM stream relayed through your backend",
+    "the server is calling OpenAI with stream=True and re-emitting each chunk as SSE to YOU",
 )
 
 
 # ---- Step 1: send the prompt ------------------------------------------
-demo(1, "Send a prompt; the server will stream a response token-by-token")
+demo(1, "Send a prompt; the server will stream a real OpenAI response token-by-token")
 
-prompt = {"prompt": "What are 3 must-try Mumbai street foods?"}
+prompt = {"prompt": "What are 3 must-try Mumbai street foods? One short paragraph per dish."}
 request_line("POST", URL)
 request_body(prompt)
+note("the server will call OpenAI with stream=True and relay each chunk")
+note("back to us as an SSE event - exactly the pattern Vercel AI SDK uses")
+
+pause("Press ENTER to open the stream")
 
 
 # ---- Step 2: read the SSE stream raw ----------------------------------
 print()
 demo(2, "Watch the raw SSE wire format - each event is 3 lines + a blank line")
-note("the first 5 raw events are shown verbatim so you see the protocol")
+note("the first ~30 raw lines are shown verbatim so you see the protocol")
 print()
 
 # Parse SSE events as they arrive.
@@ -99,10 +103,11 @@ with httpx.stream("POST", URL, json=prompt, timeout=30) as r:
 total_elapsed = time.time() - t0
 
 divider()
+pause()
 
 
 # ---- Step 3: show the assembled response ------------------------------
-demo(3, "Assembled response (built up word by word from the events)")
+demo(3, "Assembled response (built up token by token from the events)")
 print()
 text = "".join(assembled_response)
 # Wrap nicely
@@ -113,9 +118,11 @@ print()
 
 
 # ---- Step 4: stats ----------------------------------------------------
+pause()
 divider()
 demo(4, "Stream stats")
 summary_table([
+    ("Model",                      "gpt-4o-mini (via your backend)"),
     ("Total tokens received",      str(token_count)),
     ("Time to first token",        f"{first_token_at*1000:.0f} ms" if first_token_at else "n/a"),
     ("Total stream time",          f"{total_elapsed:.2f} s"),
@@ -124,11 +131,11 @@ summary_table([
 ])
 
 lesson(
-    "What you just saw IS Server-Sent Events. One HTTP request. Many "
-    "events pushed down the same response body, separated by blank lines. "
-    "This is EXACTLY the wire format OpenAI returns when you set "
-    "stream=True. Run example 07 next to see the real OpenAI API doing "
-    "the same thing."
+    "You just saw the full real-world pattern. The browser opened ONE "
+    "SSE connection to YOUR backend. Your backend opened ONE upstream "
+    "SSE connection to OpenAI. Each token from OpenAI flowed downstream "
+    "to you as a separate SSE event. Same wire format both sides. This "
+    "is how ChatGPT, Claude.ai, and every Vercel-AI-SDK app works."
 )
 
 print()

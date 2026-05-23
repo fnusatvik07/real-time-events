@@ -11,6 +11,8 @@ LOGS="$HERE/.qa_logs"
 mkdir -p "$LOGS"
 
 PYTHON="${PYTHON:-python}"
+# Skip interactive pauses when clients are run from qa.sh
+export NO_PAUSE=1
 
 # colors
 G='\033[0;32m'; R='\033[0;31m'; B='\033[0;34m'; N='\033[0m'

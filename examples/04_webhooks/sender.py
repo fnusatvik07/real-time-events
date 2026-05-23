@@ -25,7 +25,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from _pretty import (
-    banner, demo, divider,
+    banner, demo, divider, pause,
     request_line, request_header, request_body, show_response,
     lesson, note, ok, fail, preflight_check,
 )
@@ -111,6 +111,7 @@ lesson(
 )
 
 divider()
+pause()
 
 
 # ---- Case 2: same event delivered again -------------------------------
@@ -129,6 +130,7 @@ lesson(
 )
 
 divider()
+pause()
 
 
 # ---- Case 3: refund event ---------------------------------------------
@@ -145,6 +147,7 @@ lesson(
 )
 
 divider()
+pause()
 
 
 # ---- Case 4: forgery attempt ------------------------------------------
@@ -163,6 +166,7 @@ lesson(
 )
 
 divider()
+pause()
 
 
 # ---- Recap ------------------------------------------------------------

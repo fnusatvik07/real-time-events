@@ -183,6 +183,24 @@ def summary_table(rows: list[tuple[str, str]]) -> None:
     print()
 
 
+def pause(message: str = "Press ENTER for next step") -> None:
+    """Pause for the user between demos so a presenter can talk in between.
+
+    Skipped automatically when:
+      - stdin is not a TTY (e.g. qa.sh captures output via $(...))
+      - the env var NO_PAUSE is set
+    """
+    if not sys.stdin.isatty() or os.environ.get("NO_PAUSE"):
+        return
+    print()
+    print(f"  {DIM}{message}...{RESET}", end="", flush=True)
+    try:
+        input()
+    except (EOFError, KeyboardInterrupt):
+        print()
+        sys.exit(0)
+
+
 def preflight_check(base_url: str, expected_keyword: str = "") -> None:
     """Verify the server at base_url is reachable and is the right one.
 

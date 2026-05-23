@@ -21,7 +21,7 @@ from pathlib import Path
 # Pretty-print helpers (shared across all examples)
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from _pretty import (
-    banner, demo, divider,
+    banner, demo, divider, pause,
     request_line, request_header, request_body,
     show_response,
     lesson, note, warn, preflight_check,
@@ -86,6 +86,7 @@ lesson(
 )
 
 divider()
+pause()
 
 
 # ---- Demo 2 ----
@@ -104,6 +105,7 @@ except httpx.HTTPError as e:
     warn(f"weather call failed ({e}) - wttr.in may be slow today, continuing.")
 
 divider()
+pause()
 
 
 # ---- Demo 3 ----
@@ -122,6 +124,7 @@ lesson(
 )
 
 divider()
+pause()
 
 
 # ---- Demo 4 ----
@@ -195,6 +198,7 @@ lesson(
 )
 
 divider()
+pause()
 
 
 # ---- Demo 5 ----
@@ -212,6 +216,7 @@ lesson(
 )
 
 divider()
+pause()
 
 
 # ---- Demo 6 ----
@@ -226,6 +231,7 @@ lesson(
 )
 
 divider()
+pause()
 
 
 # ---- Demo 7 ----
@@ -240,6 +246,7 @@ lesson(
 )
 
 divider()
+pause()
 
 
 # ---- Recap ----

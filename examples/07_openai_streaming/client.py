@@ -23,7 +23,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from _pretty import (
-    banner, demo, divider,
+    banner, demo, divider, pause,
     lesson, note, info, ok, warn, fail, summary_table,
     GREEN, YELLOW, CYAN, MAGENTA, DIM, BOLD, RESET,
 )
@@ -71,6 +71,7 @@ print()
 print(f"  {YELLOW}{BOLD}USER{RESET}      {USER_PROMPT}")
 
 divider()
+pause()
 
 
 # ---- Step 2: stream the response --------------------------------------
@@ -106,6 +107,7 @@ print()
 total_elapsed = time.time() - t0
 
 divider()
+pause()
 
 
 # ---- Step 3: stream stats ---------------------------------------------

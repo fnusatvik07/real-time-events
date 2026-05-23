@@ -1,14 +1,15 @@
-# 05 - Server-Sent Events (ChatGPT-style token streaming)
+# 05 - Server-Sent Events (real LLM stream relayed through your backend)
 
-Realistic scenario: a chat UI sends a prompt; the server streams the answer back one word at a time so the response appears like someone typing. This is exactly what ChatGPT, Claude.ai, Cursor, and every modern LLM chat UI does.
+Realistic scenario: a chat UI sends a prompt to your backend; your backend calls OpenAI with `stream=True` and **relays each chunk back to the browser as an SSE event**. This is the exact pattern Vercel AI SDK, the OpenAI SDK's server adapters, and every Next.js LLM app uses.
 
-For this example the server uses a **canned** answer (so the demo is deterministic). Example 07 swaps in a real OpenAI call - the wire format is identical.
+Compared to example 07 (which calls OpenAI directly from a Python script), this one shows the **production** topology: the API key stays on the server, the browser only talks to your domain.
 
 ## What the server does
 
 `POST /chat` with `{"prompt": "..."}`:
 - Returns `Content-Type: text/event-stream`
-- Yields one event per word (~80ms apart) using the SSE format:
+- Calls OpenAI (`gpt-4o-mini`) with `stream=True`
+- For each chunk OpenAI emits, re-emits an SSE event to the client:
   ```
   id: 7
   event: token
@@ -16,6 +17,7 @@ For this example the server uses a **canned** answer (so the demo is determinist
 
   ```
 - Sends `event: open` first and `event: done` last so the client knows the boundaries
+- Reads `OPENAI_API_KEY` from `../../.env`
 
 ## Run
 

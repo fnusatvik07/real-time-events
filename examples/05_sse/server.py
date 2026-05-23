@@ -1,11 +1,18 @@
-"""SSE server - mimic a ChatGPT-style streaming chat response.
+"""SSE server - relays a REAL OpenAI stream to the client.
 
-POST /chat with a {"prompt": "..."} body returns a text/event-stream where
-the server streams a (canned) LLM response word-by-word with a small delay,
-exactly the way OpenAI / Anthropic stream tokens in production.
+This is the pattern most modern AI apps use: the browser opens an SSE
+connection to YOUR backend, your backend calls OpenAI (or Anthropic) with
+stream=True, and your backend re-emits each chunk as an SSE event to the
+browser. From the browser's perspective it's just an SSE stream from your
+own domain.
 
-We use a canned response so the demo is deterministic. Example 07 swaps in
-a REAL OpenAI call to show the same wire format with a real model.
+Why proxy instead of letting the browser call OpenAI directly?
+  1. Your API key never reaches the browser.
+  2. You can transform / filter / log the stream.
+  3. You can add auth, rate limiting, prompt templating.
+  4. CORS and DNS get simpler when everything looks like your own domain.
+
+Reads OPENAI_API_KEY from ../../.env.
 
 Run:
     uvicorn server:app --port 8105
@@ -14,66 +21,94 @@ from __future__ import annotations
 
 import asyncio
 import json
-import time
+import os
+from pathlib import Path
 
+from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
+load_dotenv(Path(__file__).resolve().parents[2] / ".env")
+
+from openai import AsyncOpenAI
+
 app = FastAPI(title="SSE chat streaming demo")
 
+# One async OpenAI client, reused across requests.
+client = AsyncOpenAI()
+MODEL = "gpt-4o-mini"
 
-# A canned multi-paragraph response. Split into words so each word is one
-# SSE event - same shape as a real LLM streaming tokens.
-CANNED_RESPONSE = (
-    "Great question! Here are 3 must-try Mumbai street foods you can't miss. "
-    "First, Vada Pav - the iconic Mumbai burger: a spiced potato fritter inside "
-    "a soft pav bun, served with green chutney and a fried chili. "
-    "Second, Pav Bhaji - a buttery mash of vegetables, spices, and tomatoes, "
-    "scooped up with toasted pav. Best eaten at Juhu Beach in the evening. "
-    "Third, Bombay Sandwich - a triple-decker with potato, beetroot, cucumber, "
-    "tomato, and green chutney, grilled until crisp. Enjoy!"
+# Friendly system prompt so the LLM stays on theme.
+SYSTEM_PROMPT = (
+    "You are a friendly food expert for an Indian food delivery app called "
+    "LiveOrder. Keep answers short (5-8 short sentences), concrete, and "
+    "tasty. No markdown headers, just plain paragraphs."
 )
+
+DEFAULT_PROMPT = "What are 3 must-try Mumbai street foods? One short paragraph per dish."
 
 
 class ChatRequest(BaseModel):
-    prompt: str = "What are 3 must-try Mumbai street foods?"
+    prompt: str = DEFAULT_PROMPT
 
 
 @app.get("/")
 def root():
     return {
         "service": "SSE chat streaming demo",
+        "model":   MODEL,
+        "openai_key_configured": bool(os.environ.get("OPENAI_API_KEY")),
         "endpoints": {
-            "POST /chat": "stream a fake LLM response token-by-token (SSE)",
+            "POST /chat":
+                "stream a real OpenAI response over SSE.  Body: {\"prompt\": \"...\"}",
         },
     }
 
 
 @app.post("/chat")
 async def chat(req: ChatRequest):
-    """Streams the canned response as SSE events, one word per event."""
+    """Relays a real OpenAI streaming response to the client as SSE events."""
 
     async def gen():
-        # opening event so the client knows the stream started
-        yield f"event: open\ndata: {json.dumps({'prompt': req.prompt})}\n\n"
+        # opening event so the client knows the stream is alive
+        yield f"event: open\ndata: {json.dumps({'prompt': req.prompt, 'model': MODEL})}\n\n"
 
-        words = CANNED_RESPONSE.split()
-        for i, word in enumerate(words):
-            payload = {"text": word + " ", "index": i}
-            # Each event has an id (resume-friendly), an event type (lets
-            # clients subscribe with addEventListener), and a JSON payload.
-            yield f"id: {i}\nevent: token\ndata: {json.dumps(payload)}\n\n"
-            await asyncio.sleep(0.08)   # 80ms per token feels like a real LLM
+        try:
+            stream = await client.chat.completions.create(
+                model=MODEL,
+                messages=[
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user",   "content": req.prompt},
+                ],
+                stream=True,
+            )
 
-        # final event so the client knows we're done
-        yield f"event: done\ndata: {json.dumps({'token_count': len(words)})}\n\n"
+            i = 0
+            async for chunk in stream:
+                delta = chunk.choices[0].delta.content
+                if not delta:
+                    continue
+                payload = {"text": delta, "index": i}
+                # Each event: id (resume support) + event type + JSON payload + blank line.
+                yield f"id: {i}\nevent: token\ndata: {json.dumps(payload)}\n\n"
+                i += 1
+
+            yield f"event: done\ndata: {json.dumps({'token_count': i})}\n\n"
+
+        except asyncio.CancelledError:
+            # Client disconnected mid-stream. Let the cancellation propagate.
+            raise
+        except Exception as e:
+            # Send a friendly error event instead of dying silently.
+            err = {"error": type(e).__name__, "message": str(e)}
+            yield f"event: error\ndata: {json.dumps(err)}\n\n"
 
     return StreamingResponse(
         gen(),
         media_type="text/event-stream",
         headers={
-            "Cache-Control": "no-cache, no-transform",
-            "X-Accel-Buffering": "no",   # tell nginx-style proxies not to buffer
+            "Cache-Control":      "no-cache, no-transform",
+            "X-Accel-Buffering":  "no",   # tell nginx-style proxies not to buffer
         },
     )

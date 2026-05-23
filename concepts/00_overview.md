@@ -1,80 +1,150 @@
-# Workshop: How Systems Talk in Real Time
+# Real-Time Communication Patterns - A Practical Guide
 
-## The Big Picture
-
-Modern apps are constantly moving data between systems: a chat bubble updates the moment your friend types, a payment confirmation pops up seconds after the transaction, a dashboard refreshes itself without you clicking anything, an AI chatbot's reply appears word-by-word.
-
-All of that "real-time" feeling comes from **four communication patterns**:
-
-| Pattern | Mental Model | One-line definition |
-|---------|--------------|---------------------|
-| **Polling** | "Are we there yet? Are we there yet?" | Client repeatedly asks the server if anything changed |
-| **Webhooks** | "Don't call us, we'll call you" | One server POSTs to another the moment something happens |
-| **SSE** | "Open a faucet from server to client" | Server pushes a stream of events over one long HTTP connection |
-| **WebSockets** | "Open a phone line" | Both sides can talk anytime over one persistent connection |
-
-The goal of this workshop is not just to know what they are - it's to know **when to reach for which** and **why the wrong choice will hurt you**.
+> Polling, Webhooks, Server-Sent Events, and WebSockets. What they are, when to use them, and how to build them. Written so you can read it once and keep it as a reference forever.
 
 ---
 
-## Why these patterns matter for AI applications
+## Who this guide is for
 
-These four patterns are the hidden plumbing of every AI app you've ever used:
+This guide assumes you can write a bit of code and have heard the words "client" and "server" but does **not** assume you've ever built anything real-time before. If you can build a simple website that shows a list of things, you have enough background to read every page in this folder.
 
-- **ChatGPT's "typing" animation** → SSE streaming tokens from the LLM
-- **An agent that runs a 5-minute research task** → polling or webhook callback when done
-- **Cursor/Copilot ghost-text suggestions** → WebSocket or SSE
-- **MCP servers exposing tools to Claude** → SSE / Streamable HTTP
-- **A GitHub bot that reviews PRs** → webhook receiver triggering an agent
+By the end you will be able to:
 
-If you don't know these patterns, you'll either:
-- Burn money on idle WebSocket connections that should have been polling
-- Build flaky webhook receivers that drop events
-- Reach for WebSockets when SSE would have been simpler and cheaper
-- Build a chat UI that feels laggy because you used polling instead of streaming
+- Recognise which real-time pattern an app you're using is built on (often just by watching its network tab)
+- Pick the right pattern for a feature you're designing without overthinking it
+- Build a small working example of each pattern in your favourite language
+- Talk about latency, scale, and cost trade-offs the way the people who already build this stuff do
+
+You don't have to read this front to back. Each file is self-contained. But if you're starting from scratch, the numbered order is the gentlest path.
 
 ---
 
-## Workshop Structure
+## The big problem we're solving
 
-This workshop is organized in 4 layers - start at the top, work down:
+The web was originally designed around one beautifully simple idea:
+
+> **The browser asks. The server answers. Done.**
+
+You type a URL, the browser sends a request, the server sends back a page, the conversation ends. This is called HTTP, and it powers basically everything you do online. It's brilliant for "show me a page" but it has one serious limitation:
+
+**The server cannot say anything to you unless you ask first.**
+
+That sounds reasonable until you think about what modern apps actually do:
+
+- **Slack** shows your friend's message the moment they hit send. You didn't ask. How does Slack know to tell you?
+- **Uber** shows the car moving down the map. You didn't keep clicking refresh. How is your phone getting position updates?
+- **Stripe** charges a customer's card and your inventory system marks the item as sold. Nobody clicked anything. How did your system find out?
+- **ChatGPT** types out its answer one word at a time. You only sent the question once. Why does the answer come in pieces?
+- **Google Docs** shows your colleague's cursor moving as they edit. Nobody refreshed. How are both browsers in sync?
+
+Each of these is "the server has something new and wants the client to know about it now." That's the real-time problem. And there are exactly four solutions in common use.
+
+---
+
+## The four patterns - meet the cast
+
+Think of them like four ways to keep in touch with a friend:
+
+| Pattern | Real-life analogy | One-line definition |
+|---------|------------------|---------------------|
+| **Polling** | Calling your friend every 10 minutes to ask "any news?" | The client keeps asking the server on a timer |
+| **Webhooks** | Your friend has your phone number; they call you when something happens | One server makes an HTTP request to another server when an event fires |
+| **SSE (Server-Sent Events)** | Tuning your radio to a news station that keeps broadcasting | The server holds an HTTP connection open and pushes updates down it |
+| **WebSockets** | A phone call where either of you can talk anytime | A persistent two-way channel between client and server |
+
+That's the entire universe of "how to get real-time updates" in modern web/mobile apps. Everything else - push notifications on your phone, gRPC streaming, MQTT, Kafka - is a variation or a specialisation of one of these four.
+
+The whole point of this guide is to help you tell them apart and pick correctly.
+
+---
+
+## A scenario we'll keep coming back to
+
+To make all this concrete, we'll use one running example throughout the guide. Meet our cast:
+
+- **Maya** is a backend developer at a startup called **LiveOrder**, a food delivery app.
+- **Raj** is a hungry customer who just ordered biryani.
+- **Priya** owns the restaurant that received Raj's order.
+- **Sam** is the delivery driver who will pick up the food and bring it to Raj.
+
+The LiveOrder app has to coordinate between all four of them in real time:
+
+| Feature | Who needs to be told | Which pattern fits |
+|---------|---------------------|---------------------|
+| Raj's payment is confirmed by Stripe | LiveOrder backend | **Webhook** (Stripe calls Maya's server) |
+| Priya's restaurant tablet shows the new order pop up | Priya | **SSE** (server pushes to restaurant) |
+| Raj's phone shows "preparing... ready... out for delivery" | Raj | **SSE** (server pushes to user) |
+| Raj can chat with Sam about apartment buzzer code | Raj and Sam | **WebSocket** (two-way chat) |
+| Raj's map shows Sam's scooter moving | Raj | **SSE** or fast polling |
+| Maya's dashboard checks if a long batch job (computing tomorrow's pricing) is done | Maya | **Polling** (low frequency, batch) |
+
+One app. All four patterns. None of them is "better" than the others - each one fits a different shape of problem.
+
+By the time you finish this guide, you'll be able to look at a new feature and say "ah, that's a webhook" or "this is begging for SSE" with the same confidence Maya does.
+
+---
+
+## The 30-second mental model
+
+Before going deep, lock in this picture. It will save you hours of debating in design meetings:
+
+```mermaid
+flowchart TD
+    Start{Where does the event<br/>start from?}
+    Start -->|Outside your system<br/>e.g. Stripe, GitHub| Webhook[WEBHOOK<br/>let them call you]
+    Start -->|Your client wants<br/>updates from your server| Direction{One-way<br/>or two-way?}
+
+    Direction -->|Server tells client<br/>client just listens| HowOften{How often<br/>and how fast?}
+    Direction -->|Both talk freely<br/>chat, voice, games| WS[WEBSOCKET]
+
+    HowOften -->|Rare, OK to be<br/>a few seconds stale| Poll[POLLING<br/>simple, cheap when rare]
+    HowOften -->|Frequent, must feel live<br/>e.g. streaming text| SSE[SSE<br/>cheap when frequent]
+
+    classDef q fill:#fff2cc,stroke:#d6b656,color:#000,font-weight:bold
+    classDef leaf fill:#d5e8d4,stroke:#82b366,color:#000,font-weight:bold
+    class Start,Direction,HowOften q
+    class Webhook,Poll,SSE,WS leaf
+```
+
+Save this picture in your head. You will reach for it constantly.
+
+---
+
+## How to read this guide
 
 ```
-1. CONCEPTS  (concepts/*.md)           ← Read these first or alongside class
-2. DIAGRAMS  (diagrams/*.drawio)       ← Visual reference for each concept
-3. NOTEBOOK  (notebook/walkthrough...) ← Hands-on intro, runnable cells
-4. PROJECTS  (projects/project_1, _2)  ← Two full apps to walk through end-to-end
+concepts/
+├── 00_overview.md            ← you are here
+├── 01_http_fundamentals.md   ← prerequisite: how the web actually talks
+├── 02_polling.md             ← simplest pattern, start here for code
+├── 03_webhooks.md            ← inversion: server calls you
+├── 04_sse.md                 ← streaming from server to client
+├── 05_websockets.md          ← full duplex, the heavyweight option
+├── 06_decision_matrix.md     ← when to pick what, with rationale
+└── 07_ai_agents_mcp.md       ← where these show up in modern AI apps
 ```
 
-### Recommended teaching order (60-90 min session)
+**Suggested paths:**
 
-1. **(5 min)** Overview - Why we're here, what changes for each pattern
-2. **(10 min)** HTTP fundamentals - set the baseline
-3. **(10 min)** Polling - start simple, show short vs long polling
-4. **(10 min)** Webhooks - flip the direction
-5. **(10 min)** SSE - introduce streaming
-6. **(10 min)** WebSockets - full duplex
-7. **(10 min)** Decision matrix - when to pick what
-8. **(15 min)** Project 1 walkthrough - same chat across 3 patterns
-9. **(10 min)** Project 2 walkthrough - webhook → dashboard pipeline
-10. **(5 min)** Q&A on participants' own use cases
+| If you are... | Read this order |
+|---------------|----------------|
+| New to web development | 01 → 02 → 03 → 04 → 05 → 06 → 07 |
+| A working backend dev | 02 → 03 → 04 → 05 → 06, skim 01 and 07 |
+| Mostly building AI apps | 04 → 07 → 03 → 06, others as needed |
+| Just want to pick a pattern fast | 06, then the doc for the pattern you picked |
+
+The diagrams folder (`../diagrams/`) has the same content as visual draw.io files if you prefer a deck-style read. The examples folder (`../examples/`) has runnable code for each pattern - read the docs first, then run the examples, then build the projects.
 
 ---
 
-## How to use this material
+## A few notes before we start
 
-- **Self-study:** read concept docs in order, then run the notebook, then explore projects
-- **Workshop instructor:** project the diagrams while talking through concept docs; do the notebook live; demo projects in browser
-- **Reference:** come back to specific concept docs when you need to make an architecture decision
+**This is a guide, not a spec.** When we say "WebSockets close after 60 seconds of no traffic," that's a common production reality, not a rule from the WebSocket RFC. If you need exact specs for a compliance reason, the RFCs are linked at the end of each file.
 
----
+**Code is in Python and JavaScript.** Not because they're best, but because they're the most widely readable. Patterns translate to any language with HTTP and async I/O.
 
-## Concept Files
+**Numbers are rounded for intuition.** "100k WebSockets cost 10-20 GB of RAM" is rule-of-thumb sizing, not a benchmark. Your mileage will vary based on framework, kernel tuning, message size, and what your server does between messages.
 
-1. [HTTP fundamentals](01_http_fundamentals.md) - request/response, stateless vs stateful, persistent connections
-2. [Polling](02_polling.md) - short vs long polling, trade-offs
-3. [Webhooks](03_webhooks.md) - callbacks, retries, idempotency, security
-4. [Server-Sent Events](04_sse.md) - one-way streaming, EventSource API
-5. [WebSockets](05_websockets.md) - full duplex, handshake, scaling
-6. [Decision matrix](06_decision_matrix.md) - when to use which
-7. [AI agents & MCP](07_ai_agents_mcp.md) - how these patterns power modern AI apps
+**We try to be opinionated.** Where most teams make a predictable mistake (reaching for WebSockets when SSE is enough; building polling without a cursor; deploying webhooks without idempotency), we'll say so. You're free to disagree.
+
+Alright. To the next page.

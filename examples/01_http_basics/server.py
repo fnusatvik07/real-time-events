@@ -22,6 +22,10 @@ Run:
 """
 from __future__ import annotations
 
+import base64
+import hashlib
+import hmac
+import json
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -42,6 +46,50 @@ app = FastAPI(title="HTTP basics demo server")
 notes_db: dict[int, dict] = {}
 next_note_id: int = 1
 shared_counter: int = 0
+
+
+# ---------------------------------------------------------------------------
+# JWT verification (HS256, the most common signing algorithm in the wild).
+# A JWT is just 3 base64-url-encoded strings joined by dots:
+#   <header>.<payload>.<signature>
+# The signature is HMAC-SHA256(secret, "<header>.<payload>").
+# We verify it ourselves (instead of pulling in pyjwt) so students can see
+# there's no magic - just base64 and HMAC.
+# ---------------------------------------------------------------------------
+JWT_SECRET = "demo-only-jwt-secret-do-not-use-in-prod-3f8a"
+
+
+def _b64url_decode(data: str) -> bytes:
+    """Base64-url decode (JWT style: '-_' alphabet, no padding)."""
+    padding_needed = (-len(data)) % 4
+    return base64.urlsafe_b64decode(data + ("=" * padding_needed))
+
+
+def _b64url_encode(data: bytes) -> str:
+    return base64.urlsafe_b64encode(data).rstrip(b"=").decode()
+
+
+def verify_jwt(token: str) -> dict | None:
+    """Verify the signature and return the decoded claims, or None if invalid."""
+    parts = token.split(".")
+    if len(parts) != 3:
+        return None
+    header_b64, payload_b64, signature_b64 = parts
+
+    # 1. Recompute the expected signature over header.payload
+    signing_input = f"{header_b64}.{payload_b64}".encode()
+    expected = hmac.new(JWT_SECRET.encode(), signing_input, hashlib.sha256).digest()
+    expected_b64 = _b64url_encode(expected)
+
+    # 2. Constant-time compare against what the client sent
+    if not hmac.compare_digest(expected_b64, signature_b64):
+        return None
+
+    # 3. Decode the payload to claims dict
+    try:
+        return json.loads(_b64url_decode(payload_b64))
+    except Exception:
+        return None
 
 
 # ---------------------------------------------------------------------------
@@ -105,27 +153,46 @@ def get_counter():
 
 @app.get("/me")
 def get_me(authorization: Optional[str] = Header(default=None)):
-    """Returns the current user, based on the Authorization header.
+    """Returns the current user based on the Authorization header.
+
+    This endpoint expects a real HS256 JWT (the same shape Auth0, Clerk,
+    Supabase Auth, and most SaaS backends issue). We verify the signature
+    using a shared secret and return the decoded claims.
 
     Teaching point: HTTP itself has no session. The server only knows
-    who you are because you TOLD it, on THIS request, via a header.
-    No header -> 401. The next request must re-present the header.
+    who you are because you TOLD it, on THIS request, via a signed token.
+    No header -> 401. Tampered token -> 401. The next request must
+    re-present the same (or a refreshed) token.
     """
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(
             status_code=401,
+            detail="missing Authorization header. Send: Authorization: Bearer <jwt>",
+        )
+
+    token = authorization[len("Bearer "):].strip()
+    claims = verify_jwt(token)
+    if not claims:
+        raise HTTPException(
+            status_code=401,
             detail=(
-                "missing or malformed Authorization header. "
-                "Try: Authorization: Bearer alice"
+                "JWT verification failed. Either the token is malformed, "
+                "the signature does not match (token was tampered or signed "
+                "with a different secret), or required fields are missing."
             ),
         )
-    user = authorization[len("Bearer "):].strip()
+
     return {
-        "user": user,
-        "message": f"Hi {user}!",
+        "user_id":     claims.get("sub"),
+        "name":        claims.get("name"),
+        "email":       claims.get("email"),
+        "scopes":      claims.get("scope", []),
+        "issued_at":   claims.get("iat"),
+        "expires_at":  claims.get("exp"),
         "note": (
-            f"I only know you're '{user}' because you told me on this "
-            "request. I do not remember you between requests."
+            "I extracted these fields from the JWT you sent on THIS request. "
+            "I will not remember you on the next one - you must send the "
+            "token again. That's what 'stateless' means."
         ),
     }
 

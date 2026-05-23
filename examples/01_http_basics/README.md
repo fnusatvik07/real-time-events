@@ -58,7 +58,12 @@ So each demo shows: what was sent, what came back, and why it matters.
 1. **Plain GET** - no parameters, no auth. The simplest possible HTTP exchange.
 2. **Path parameter + external API** - `/weather/Bengaluru` triggers a call from our server to wttr.in. Shows that real backends are mostly glue between other backends.
 3. **The "stateless" point** - calls `/counter` three times. The counter goes up, but the server has no idea you're the same caller.
-4. **Identifying yourself** - calls `/me` without an `Authorization` header (gets 401), then with one (gets 200). Drives home the "re-present yourself on every request" idea.
+4. **Identifying yourself with a JWT** - three sub-calls to `/me`:
+   - Call A: no header -> 401
+   - Call B: a real HS256 JWT for user `Arjun Kumar` -> 200 with decoded claims (`user_id`, `name`, `email`, `scopes`)
+   - Call C: the same token with the `name` claim tampered to `Hacker Admin` -> 401 (signature no longer matches the payload)
+
+   The client also prints the JWT's three parts (header, payload, signature) decoded so the class can see exactly what a JWT is: `base64(header).base64(payload).HMAC-SHA256(header+payload)`.
 5. **POST creates** - creates a note. Server returns 201 with the created resource.
 6. **GET the new resource** - fetches the note we just created. Shows that data persists on the server, but **the server didn't notify anyone** about the creation.
 7. **404** - request a note that doesn't exist.
@@ -81,9 +86,24 @@ curl http://127.0.0.1:8101/time
 # External API
 curl http://127.0.0.1:8101/weather/Mumbai
 
-# Auth (will fail then succeed)
-curl http://127.0.0.1:8101/me
-curl -H "Authorization: Bearer alice" http://127.0.0.1:8101/me
+# Auth (no header -> 401)
+curl -i http://127.0.0.1:8101/me
+
+# Auth with a real JWT (built by the Python client).
+# To get a working JWT quickly, just run client.py and copy the printed one.
+# Or build one inline with python:
+JWT=$(python -c "
+import base64, hashlib, hmac, json, time
+secret = 'demo-only-jwt-secret-do-not-use-in-prod-3f8a'
+b64 = lambda d: base64.urlsafe_b64encode(d).rstrip(b'=').decode()
+header = b64(json.dumps({'alg':'HS256','typ':'JWT'}, separators=(',',':')).encode())
+claims = {'sub':'usr_arjun','name':'Arjun Kumar','email':'arjun@liveorder.app',
+          'iat':int(time.time()),'exp':int(time.time())+3600,'scope':['orders:read']}
+payload = b64(json.dumps(claims, separators=(',',':')).encode())
+sig = b64(hmac.new(secret.encode(), f'{header}.{payload}'.encode(), hashlib.sha256).digest())
+print(f'{header}.{payload}.{sig}')
+")
+curl -H "Authorization: Bearer $JWT" http://127.0.0.1:8101/me
 
 # POST + GET
 curl -X POST http://127.0.0.1:8101/notes \

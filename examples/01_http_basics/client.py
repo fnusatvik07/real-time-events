@@ -10,7 +10,12 @@ Run AFTER starting the server in another terminal:
 """
 from __future__ import annotations
 
+import base64
+import hashlib
+import hmac
+import json
 import sys
+import time
 from pathlib import Path
 
 # Pretty-print helpers (shared across all examples)
@@ -20,11 +25,45 @@ from _pretty import (
     request_line, request_header, request_body,
     show_response,
     lesson, note, warn,
+    CYAN, DIM, BOLD, RESET, MAGENTA, GREEN, YELLOW,
 )
 
 import httpx
 
 BASE = "http://127.0.0.1:8101"
+
+
+# ---------------------------------------------------------------------------
+# Minimal JWT helper - same shared secret as the server.
+# A JWT is just three base64-url-encoded chunks joined by dots:
+#     <header>.<payload>.<signature>
+# We build one by hand here so students can see there's no magic.
+# In production you'd use a library: pyjwt, jose, or whatever your stack uses.
+# ---------------------------------------------------------------------------
+JWT_SECRET = "demo-only-jwt-secret-do-not-use-in-prod-3f8a"
+
+
+def _b64url(data: bytes) -> str:
+    return base64.urlsafe_b64encode(data).rstrip(b"=").decode()
+
+
+def make_jwt(claims: dict) -> str:
+    """Build a real HS256 JWT for the given claims."""
+    header = {"alg": "HS256", "typ": "JWT"}
+    header_b64 = _b64url(json.dumps(header, separators=(",", ":")).encode())
+    payload_b64 = _b64url(json.dumps(claims, separators=(",", ":")).encode())
+    signing_input = f"{header_b64}.{payload_b64}".encode()
+    signature = hmac.new(JWT_SECRET.encode(), signing_input, hashlib.sha256).digest()
+    return f"{header_b64}.{payload_b64}.{_b64url(signature)}"
+
+
+def decode_jwt_parts(token: str) -> tuple[dict, dict, str]:
+    """Decode header + payload (for display); leave the signature opaque."""
+    header_b64, payload_b64, sig_b64 = token.split(".")
+    pad = lambda s: s + "=" * ((-len(s)) % 4)
+    header  = json.loads(base64.urlsafe_b64decode(pad(header_b64)))
+    payload = json.loads(base64.urlsafe_b64decode(pad(payload_b64)))
+    return header, payload, sig_b64
 
 
 # ===========================================================================
@@ -85,24 +124,73 @@ divider()
 
 
 # ---- Demo 4 ----
-demo(4, "identifying yourself - the Authorization header")
+demo(4, "identifying yourself - JWT in the Authorization header")
 
-note("--- call A: NO header (the server has no idea who we are) ---")
+note("This is how nearly every modern SaaS does auth: short-lived signed JSON")
+note("Web Tokens (JWTs). The server verifies the signature; if it matches, the")
+note("server trusts the claims inside.")
+
+# Build a real JWT for our user. In a real app this is issued by a login
+# endpoint after the user enters their email/password (or via OAuth).
+now = int(time.time())
+claims = {
+    "sub":   "usr_arjun_8c3d2",
+    "name":  "Arjun Kumar",
+    "email": "arjun.kumar@liveorder.app",
+    "iat":   now,
+    "exp":   now + 3600,
+    "scope": ["orders:read", "orders:write"],
+}
+jwt = make_jwt(claims)
+
+# Show students what's inside the JWT so they don't think it's opaque magic.
+print()
+print(f"  {CYAN}{BOLD}JWT we built for Arjun:{RESET}")
+print(f"  {DIM}{jwt}{RESET}")
+print()
+print(f"  {CYAN}decoded parts:{RESET}")
+header_dict, payload_dict, sig_b64 = decode_jwt_parts(jwt)
+print(f"    {YELLOW}header  {RESET}{json.dumps(header_dict)}")
+print(f"    {YELLOW}payload {RESET}{json.dumps(payload_dict)}")
+print(f"    {YELLOW}signature{RESET} {sig_b64[:24]}... {DIM}(HMAC-SHA256 of header+payload, "
+      f"signed with the shared secret){RESET}")
+
+print()
+note("--- call A: NO header (server has no idea who we are) ---")
 print()
 request_line("GET", f"{BASE}/me")
 r = httpx.get(f"{BASE}/me")
 show_response(r)
+
 print()
-note("--- call B: same endpoint, now WITH an Authorization header ---")
+note("--- call B: WITH our real JWT (server verifies the signature, returns claims) ---")
 print()
 request_line("GET", f"{BASE}/me")
-request_header("Authorization", "Bearer alice")
-r = httpx.get(f"{BASE}/me", headers={"Authorization": "Bearer alice"})
+request_header("Authorization", f"Bearer {jwt[:40]}...{jwt[-12:]}")
+r = httpx.get(f"{BASE}/me", headers={"Authorization": f"Bearer {jwt}"})
 show_response(r)
+
+print()
+note("--- call C: TAMPERED JWT (we change a claim but keep the old signature) ---")
+note("    swap name 'Arjun Kumar' -> 'Hacker Admin' in the payload, leave the signature.")
+print()
+# Tamper: build a new payload (different name) with the OLD signature
+evil_claims = {**claims, "name": "Hacker Admin", "scope": ["admin"]}
+evil_payload_b64 = _b64url(json.dumps(evil_claims, separators=(",", ":")).encode())
+header_b64, _, real_sig_b64 = jwt.split(".")
+tampered_jwt = f"{header_b64}.{evil_payload_b64}.{real_sig_b64}"
+
+request_line("GET", f"{BASE}/me")
+request_header("Authorization", f"Bearer {tampered_jwt[:40]}...{tampered_jwt[-12:]}")
+r = httpx.get(f"{BASE}/me", headers={"Authorization": f"Bearer {tampered_jwt}"})
+show_response(r)
+
 lesson(
-    "HTTP carries no session between requests. You must re-present your "
-    "identity (a token, cookie, etc.) on EVERY request. The server reads "
-    "it, decides who you are, then immediately forgets when the response is sent."
+    "Three takeaways. (1) HTTP has no built-in session - you re-present your "
+    "JWT on every request. (2) A JWT is just base64(header).base64(payload)."
+    "HMAC-SHA256 of those. (3) Tampering the payload without the secret "
+    "breaks the signature, so the server rejects it - which is exactly why "
+    "JWTs work as auth tokens."
 )
 
 divider()

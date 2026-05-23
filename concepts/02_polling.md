@@ -8,20 +8,19 @@
 
 The client wants to know about server-side changes. Vanilla HTTP can't push, so the client takes matters into its own hands: it asks. Repeatedly.
 
-```
-CLIENT                   SERVER
-  |  GET /messages ----->  |
-  |  <---- 200 [] -------  |   (nothing yet)
-  |                        |
-  |  (wait 2 seconds)      |
-  |                        |
-  |  GET /messages ----->  |
-  |  <---- 200 [] -------  |   (still nothing)
-  |                        |
-  |  (wait 2 seconds)      |
-  |                        |
-  |  GET /messages ----->  |
-  |  <---- 200 [msg1] ---  |   (finally!)
+```mermaid
+sequenceDiagram
+    autonumber
+    participant C as Client
+    participant S as Server
+    C->>S: GET /messages
+    S-->>C: 200 [] (nothing yet)
+    Note over C: wait 2s
+    C->>S: GET /messages
+    S-->>C: 200 [] (still nothing)
+    Note over C: wait 2s
+    C->>S: GET /messages
+    S-->>C: 200 [msg1]  finally!
 ```
 
 ---
@@ -90,20 +89,19 @@ def get_messages(since: int = 0):
 
 When the response comes back, the client immediately fires another request and the cycle repeats.
 
-```
-CLIENT                   SERVER
-  |  GET /messages ----->  |
-  |                        |  (server holds the request, waiting)
-  |                        |
-  |                        |  ... 8 seconds later, a message arrives ...
-  |                        |
-  |  <---- 200 [msg1] ---  |
-  |  GET /messages ----->  |  (immediately reconnects)
-  |                        |  (holding again)
-  |                        |
-  |                        |  ... 30s pass, no message ...
-  |  <---- 200 [] -------  |  (timeout, send empty response)
-  |  GET /messages ----->  |  (reconnects)
+```mermaid
+sequenceDiagram
+    autonumber
+    participant C as Client
+    participant S as Server
+    C->>S: GET /messages?wait=30
+    Note over S: server holds the request open<br/>(no response yet, no client CPU spent)
+    Note over S: 8 seconds later<br/>a message arrives
+    S-->>C: 200 [msg1] (returned immediately)
+    C->>S: GET /messages?wait=30 (immediately reconnects)
+    Note over S: server holds again<br/>30s pass, no data
+    S-->>C: 204 No Content (timeout)
+    C->>S: GET /messages?wait=30 (reconnects)
 ```
 
 ### Why long polling is better

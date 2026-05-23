@@ -6,26 +6,20 @@
 
 ## 4.1 What is SSE?
 
-The server keeps an HTTP connection open and sends events down it as they happen. The client reads the stream. **Server → client only**, but no need for handshake gymnastics, no need for special infrastructure - it's just HTTP with `Content-Type: text/event-stream`.
+The server keeps an HTTP connection open and sends events down it as they happen. The client reads the stream. **Server -> client only**, but no need for handshake gymnastics, no need for special infrastructure - it's just HTTP with `Content-Type: text/event-stream`.
 
-```
-CLIENT                                 SERVER
-  |                                      |
-  |  GET /stream  Accept: text/event-stream
-  |  ----------------------------------> |
-  |                                      |
-  |  <-- 200 OK                          |
-  |      Content-Type: text/event-stream |
-  |      (connection kept open)          |
-  |                                      |
-  |  <-- data: hello\n\n                 |  (event 1)
-  |                                      |
-  |  ... (idle) ...                      |
-  |                                      |
-  |  <-- data: world\n\n                 |  (event 2)
-  |                                      |
-  |  <-- event: ping\ndata: \n\n         |  (keep-alive)
-  |                                      |
+```mermaid
+sequenceDiagram
+    autonumber
+    participant C as Browser<br/>new EventSource('/stream')
+    participant S as Server<br/>text/event-stream
+    C->>S: GET /stream<br/>Accept: text/event-stream
+    S-->>C: 200 OK<br/>Content-Type: text/event-stream<br/>(connection kept open)
+    S-->>C: data: hello (event 1)
+    Note over C,S: idle
+    S-->>C: data: world (event 2)
+    S-->>C: : keep-alive ping (comment, ignored)
+    S-->>C: event: token<br/>data: {"text":"Hi"}
 ```
 
 ---
@@ -167,20 +161,20 @@ async def stream():
 
 ## 4.5 Resuming after disconnect
 
-```
-First connect:
-  Server sends:  id: 1\ndata: msg-a\n\n
-                 id: 2\ndata: msg-b\n\n
-                 id: 3\ndata: msg-c\n\n
-
-Connection drops after id 2 received.
-
-Browser auto-reconnects with header:
-  Last-Event-ID: 2
-
-Server should resume from where the client left off:
-                 id: 3\ndata: msg-c\n\n
-                 id: 4\ndata: msg-d\n\n
+```mermaid
+sequenceDiagram
+    autonumber
+    participant C as Browser
+    participant S as Server
+    C->>S: GET /stream
+    S-->>C: id: 1  data: msg-a
+    S-->>C: id: 2  data: msg-b
+    Note over C,S: CONNECTION DROPS<br/>(network blip)
+    Note over C: browser waits ~3s<br/>then reconnects automatically
+    C->>S: GET /stream<br/>Last-Event-ID: 2
+    Note over S: server replays from buffer<br/>events with id > 2
+    S-->>C: id: 3  data: msg-c
+    S-->>C: id: 4  data: msg-d
 ```
 
 This is opt-in on the server side - you need to look at the `Last-Event-ID` header and replay messages with higher IDs (from a buffer, log, or pubsub).

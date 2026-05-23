@@ -10,21 +10,24 @@ SSE is one-way (server → client). Polling is high-latency and wasteful. Webhoo
 
 WebSockets give you the missing piece: **a low-latency, two-way channel between a browser (or any client) and a server**, with very little overhead per message.
 
-```
-CLIENT                                 SERVER
-  |  GET /ws  Upgrade: websocket       |
-  |  ----------------------------------> |
-  |                                      |
-  |  <-- 101 Switching Protocols         |
-  |      Upgrade: websocket              |
-  |                                      |
-  |  <==== (full-duplex frames) =====>   |
-  |  <-- "ping"                          |
-  |  --> "pong"                          |
-  |  <-- "another message"               |
-  |  --> "reply"                         |
-  |  <-- (binary blob)                   |
-  |                                      |
+```mermaid
+sequenceDiagram
+    autonumber
+    participant C as Client
+    participant S as Server
+    rect rgb(245, 245, 220)
+    Note over C,S: Phase 1 - HTTP handshake
+    C->>S: GET /ws<br/>Upgrade: websocket
+    S-->>C: 101 Switching Protocols<br/>Upgrade: websocket
+    end
+    rect rgb(220, 240, 220)
+    Note over C,S: Phase 2 - full-duplex frames (no more HTTP)
+    S->>C: "ping"
+    C->>S: "pong"
+    S->>C: "another message"
+    C->>S: "reply"
+    S->>C: (binary blob)
+    end
 ```
 
 After the handshake, there's no concept of "request" and "response" - either side just sends a **frame** whenever it has something to say.

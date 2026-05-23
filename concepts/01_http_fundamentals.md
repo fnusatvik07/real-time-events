@@ -8,19 +8,14 @@
 
 HTTP is a **request/response** protocol. The client (your browser, your app, `curl`) opens a connection to the server, sends a request, the server sends back a response, and that's it - the interaction is over.
 
-```
-CLIENT                          SERVER
-  |                               |
-  |  --- HTTP Request --------->  |
-  |  GET /api/users HTTP/1.1      |
-  |  Host: api.example.com        |
-  |                               |
-  |  <-- HTTP Response ---------  |
-  |   HTTP/1.1 200 OK             |
-  |   Content-Type: application/json
-  |   { "users": [...] }          |
-  |                               |
-  | --- (connection closed) ----  |
+```mermaid
+sequenceDiagram
+    autonumber
+    participant C as Client
+    participant S as Server
+    C->>S: HTTP Request<br/>GET /api/users HTTP/1.1<br/>Host: api.example.com
+    S-->>C: HTTP Response<br/>200 OK<br/>Content-Type: application/json<br/>{ "users": [...] }
+    Note over C,S: Connection closed<br/>(or kept-alive for the next request)
 ```
 
 ### Anatomy of a request
@@ -90,9 +85,16 @@ Stateless requests can be load-balanced across any number of servers - but they 
 
 By default, HTTP/1.0 closed the TCP connection after each response. HTTP/1.1 introduced **keep-alive**: reuse the same TCP connection for many request/response cycles.
 
-```
-HTTP/1.0:  open → request → response → CLOSE → open → request → response → CLOSE
-HTTP/1.1:  open → request → response → request → response → request → response
+```mermaid
+flowchart LR
+    subgraph H10["HTTP/1.0 - one TCP connection per request"]
+        direction LR
+        A1[open] --> B1[request] --> C1[response] --> D1[CLOSE] --> A2[open] --> B2[request] --> C2[response] --> D2[CLOSE]
+    end
+    subgraph H11["HTTP/1.1 keep-alive - reuse one TCP connection"]
+        direction LR
+        A3[open] --> B3[request] --> C3[response] --> B4[request] --> C4[response] --> B5[request] --> C5[response]
+    end
 ```
 
 This is what makes **long polling** and **SSE** work efficiently - they piggyback on keep-alive to hold one connection open for a long time.

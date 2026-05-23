@@ -27,10 +27,20 @@ You can build a "real-time" feature without ever picking the right protocol, and
 **Why.** The data only flows one way (server → client). The user clicks "send" via a normal REST POST. The reply streams back as an SSE event stream. Browser's `EventSource` handles reconnect for free.
 
 **Architecture sketch.**
-```
-[user] --POST /chat--> [backend] --stream--> [LLM]
-                            ↓
-   [user] <----- SSE event-stream of tokens -----
+
+```mermaid
+sequenceDiagram
+    participant U as User (browser)
+    participant B as Your backend
+    participant L as LLM (OpenAI / Anthropic)
+    U->>B: POST /chat { prompt }
+    B->>L: HTTP stream=True (SSE upstream)
+    L-->>B: token chunks
+    B-->>U: SSE event: token (relayed)
+    L-->>B: token chunks
+    B-->>U: SSE event: token
+    L-->>B: [DONE]
+    B-->>U: SSE event: done
 ```
 
 **Why not WebSocket?** Adds complexity (handshake, framing) for no benefit if the user doesn't need to interrupt mid-stream.
@@ -46,29 +56,43 @@ You can build a "real-time" feature without ever picking the right protocol, and
 **Right patterns:** **Polling** (simple), **SSE** (better UX), or **Webhook callback** (if the dispatch is to an external system).
 
 **Option A - Polling (simplest):**
-```
-Client                Backend                Worker
-  |--POST /jobs------>|                       |
-  |<--{id: "abc"}-----|--enqueue job--------->|
-  |                   |                       |  (3 min of work)
-  |--GET /jobs/abc--->|                       |
-  |<--{status: "running"}                     |
-  |  (wait 5s)        |                       |
-  |--GET /jobs/abc--->|                       |
-  |<--{status: "done", result: ...}<----------|
+
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant B as Backend
+    participant W as Worker
+    C->>B: POST /jobs
+    B->>W: enqueue job
+    B-->>C: { id: "abc" }
+    Note over W: 3 minutes of work
+    C->>B: GET /jobs/abc
+    B-->>C: { status: "running" }
+    Note over C: wait 5s
+    C->>B: GET /jobs/abc
+    W-->>B: result ready
+    B-->>C: { status: "done", result: ... }
 ```
 
 **Option B - SSE for progress:**
-```
-Client                Backend                Worker
-  |--POST /jobs------>|                       |
-  |<--{id: "abc"}-----|--enqueue------------>|
-  |                   |                       |
-  |--GET /jobs/abc/stream---(SSE)------------>|
-  |<--{progress: "searching web"}<------------|
-  |<--{progress: "reading 3 docs"}<-----------|
-  |<--{progress: "writing"}<------------------|
-  |<--{progress: "done", result: ...}<--------|
+
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant B as Backend
+    participant W as Worker
+    C->>B: POST /jobs
+    B->>W: enqueue
+    B-->>C: { id: "abc" }
+    C->>B: GET /jobs/abc/stream (SSE)
+    W-->>B: progress: searching web
+    B-->>C: event: progress
+    W-->>B: progress: reading 3 docs
+    B-->>C: event: progress
+    W-->>B: progress: writing
+    B-->>C: event: progress
+    W-->>B: done + result
+    B-->>C: event: done + result
 ```
 
 **Option C - Webhook callback (when the worker is external):**
@@ -85,14 +109,19 @@ You hand the worker a `callback_url`. When done, the worker POSTs to it.
 **Why.** You're not initiating; the external service is. They need a public URL to POST to.
 
 **Architecture sketch.**
-```
-[GitHub] --POST /webhooks/github--> [your backend]
-                                          ↓ (verify signature, dedup)
-                                          ↓ (enqueue work)
-                                          ↓
-                                    [agent runs]
-                                          ↓
-                                  [posts review on PR]
+
+```mermaid
+flowchart LR
+    GH[GitHub] -- POST /webhooks/github --> BE[Your backend]
+    BE -- "verify signature<br/>dedup by event id<br/>enqueue work" --> Q[Job queue]
+    Q --> AG[Agent runs]
+    AG -- posts PR review --> GH
+    classDef ext fill:#f8cecc,stroke:#b85450,color:#000,font-weight:bold
+    classDef srv fill:#d5e8d4,stroke:#82b366,color:#000,font-weight:bold
+    classDef inf fill:#ffe6cc,stroke:#d79b00,color:#000
+    class GH ext
+    class BE srv
+    class Q,AG inf
 ```
 
 **The critical bits:**
@@ -111,16 +140,21 @@ You hand the worker a `callback_url`. When done, the worker POSTs to it.
 **Why.** You need both directions, low latency, and (for voice) binary frames for audio.
 
 **Architecture sketch (voice):**
-```
-[mic] --audio chunks (binary frames)--> [backend] --> [ASR]
-                                              ↓
-                                            [LLM]
-                                              ↓
-                                            [TTS]
-[speaker] <-- audio chunks (binary frames) -- [backend]
-                                              ↑
-                                    "stop speaking" signal
-                                    when user starts talking
+
+```mermaid
+flowchart LR
+    MIC[Microphone] -- audio frames (binary, WS) --> BE[Backend]
+    BE --> ASR[ASR<br/>speech-to-text]
+    ASR --> LLM[LLM]
+    LLM --> TTS[TTS<br/>text-to-speech]
+    TTS -- audio frames (binary, WS) --> SPK[Speaker]
+    SPK -. "stop speaking" signal<br/>when user interrupts .-> BE
+    classDef io fill:#dae8fc,stroke:#6c8ebf,color:#000,font-weight:bold
+    classDef srv fill:#d5e8d4,stroke:#82b366,color:#000,font-weight:bold
+    classDef ai fill:#e1d5e7,stroke:#9673a6,color:#000
+    class MIC,SPK io
+    class BE srv
+    class ASR,LLM,TTS ai
 ```
 
 This is what OpenAI's Realtime API, ElevenLabs Conversational AI, and most voice agents use under the hood.
@@ -142,14 +176,17 @@ This is what OpenAI's Realtime API, ElevenLabs Conversational AI, and most voice
 **Why not WebSocket?** Simpler infrastructure, plays nicer with HTTP-only clients, and the bidirectional needs of MCP are coarse-grained (request → many responses), not fine-grained ping-pong.
 
 **Architecture sketch:**
-```
-[Claude Desktop] --POST /mcp (initialize)--> [MCP server]
-                <-- SSE stream of messages --
-                
-                --POST /mcp (tools/call)----->
-                <-- SSE events: progress -----
-                <-- SSE events: progress -----
-                <-- SSE event: result --------
+
+```mermaid
+sequenceDiagram
+    participant H as Claude Desktop / Host
+    participant S as MCP Server<br/>(your tools)
+    H->>S: POST /mcp { initialize }
+    S-->>H: SSE: initialized
+    H->>S: POST /mcp { tools/call }
+    S-->>H: event: progress
+    S-->>H: event: progress
+    S-->>H: event: result
 ```
 
 ---
@@ -158,34 +195,39 @@ This is what OpenAI's Realtime API, ElevenLabs Conversational AI, and most voice
 
 A realistic chat app with an agent might look like:
 
-```
-                    [Browser UI]
-                   /    |    |   \
-              REST    SSE   WS    (depends on feature)
-               ↓       ↓     ↓
-              POST   stream  voice
-             /chat   tokens  channel
-               |       |     |
-                \      |    /
-                 [App backend]
-                  /    |    \
-                 /     |     \
-              webhook  |    websocket
-              from     |    to LLM
-              GitHub   |    realtime API
-                 ↓     ↓        ↓
-            [GitHub]  [DB]   [OpenAI Realtime]
-                       |
-                       ↓
-                  [Job queue]
-                       |
-                       ↓
-                   [Worker]
-                       |
-                       ↓ (when done)
-                  [Webhook back to backend]
-                       ↓ (push to user via SSE)
-                  [Browser UI]
+```mermaid
+flowchart TB
+    UI["Browser UI"]
+    BE["App backend"]
+    GH["GitHub"]
+    LLM["OpenAI Realtime API"]
+    DB[("Database")]
+    Q["Job queue"]
+    W["Worker"]
+
+    UI -- "REST  POST /chat" --> BE
+    BE -- "SSE  streamed tokens" --> UI
+    UI <-- "WebSocket  voice channel" --> BE
+
+    GH -- "WEBHOOK  PR opened" --> BE
+    BE -- "SQL" --> DB
+    BE <-- "WebSocket  audio frames" --> LLM
+
+    BE -- "enqueue" --> Q
+    Q -- "dequeue" --> W
+    W -- "WEBHOOK callback: done" --> BE
+    BE -- "SSE push to user" --> UI
+
+    classDef ui fill:#dae8fc,stroke:#6c8ebf,color:#000,font-weight:bold
+    classDef srv fill:#d5e8d4,stroke:#82b366,color:#000,font-weight:bold
+    classDef ext fill:#f8cecc,stroke:#b85450,color:#000,font-weight:bold
+    classDef ai fill:#e1d5e7,stroke:#9673a6,color:#000,font-weight:bold
+    classDef inf fill:#ffe6cc,stroke:#d79b00,color:#000,font-weight:bold
+    class UI ui
+    class BE srv
+    class GH ext
+    class LLM ai
+    class DB,Q,W inf
 ```
 
 That single app uses:

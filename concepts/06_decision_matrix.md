@@ -8,26 +8,30 @@
 
 When facing a real-time-ish requirement, walk through these in order:
 
-```
-Q1: Who initiates the communication?
-   └─ Client only → Polling
-   └─ Server only → Webhooks (server→server) or SSE (server→client)
-   └─ Both →        WebSockets
+```mermaid
+flowchart TD
+    Q1["Q1: Who initiates the communication?"]
+    Q1 --> Q1A["Client only -> POLLING"]
+    Q1 --> Q1B["Server only -> WEBHOOK (server-to-server)<br/>or SSE (server-to-client)"]
+    Q1 --> Q1C["Both -> WEBSOCKET"]
 
-Q2: What direction does data flow?
-   └─ Client → server only:     normal REST
-   └─ Server → client only:     SSE
-   └─ Server → server only:     Webhooks
-   └─ Both directions:          WebSockets
+    Q2["Q2: What direction does data flow?"]
+    Q2 --> Q2A["Client to server only -> REST"]
+    Q2 --> Q2B["Server to client only -> SSE"]
+    Q2 --> Q2C["Server to server only -> WEBHOOK"]
+    Q2 --> Q2D["Both directions -> WEBSOCKET"]
 
-Q3: How often?
-   └─ Rare, latency tolerant:   Polling, Webhooks
-   └─ Frequent, low latency:    SSE, WebSockets
+    Q3["Q3: How often?"]
+    Q3 --> Q3A["Rare, latency-tolerant -> POLLING / WEBHOOK"]
+    Q3 --> Q3B["Frequent, low latency -> SSE / WEBSOCKET"]
 
-Q4: How many concurrent clients?
-   └─ Small (<1000):            anything works
-   └─ Medium (1k-10k):          SSE or efficient polling
-   └─ Large (10k+):             think hard; pub-sub layer required
+    Q4["Q4: How many concurrent clients?"]
+    Q4 --> Q4A["under 1000 - anything works"]
+    Q4 --> Q4B["1k-10k - SSE or efficient polling"]
+    Q4 --> Q4C["over 10k - pub-sub layer required"]
+
+    classDef q fill:#fff2cc,stroke:#d6b656,color:#000,font-weight:bold
+    class Q1,Q2,Q3,Q4 q
 ```
 
 ---
@@ -55,35 +59,33 @@ Q4: How many concurrent clients?
 
 ## 6.3 Decision tree
 
-```
-                       Need real-time data?
-                                |
-                  ┌─────────────┴─────────────┐
-                  YES                          NO → Plain REST
-                  |
-       Where does the event start?
-                  |
-        ┌─────────┼─────────┐
-        |         |         |
-   On your    On someone   In the
-   client      else's      browser
-   (UI action) server     (user action)
-        |         |         |
-        |    WEBHOOKS       |
-        |    (you're the    |
-        |    receiver)      |
-        |                   |
-    [client wants to know about server changes]
-        |                   |
-   ┌────┴────┐          ┌──┴──┐
-   data is   |          one-way   two-way
-   already   |          or two-   needed?
-   in flight?|          way?      (chat, voice,
-              |              |     collab,
-   POLLING the      one-way? |     interruption)
-   external API     |        |        |
-   (e.g. status      SSE  WEBSOCKETS  WEBSOCKETS
-   of a batch job)
+```mermaid
+flowchart TD
+    A{"Need real-time data?"}
+    A -->|no| REST[REST<br/>plain request/response]
+    A -->|yes| B{"Who initiates the event?"}
+
+    B -->|third-party server| WH[WEBHOOK<br/>3rd-party POSTs to you]
+    B -->|your own server| C{"Direction of data?"}
+
+    C -->|client -> server only| POLL[POLLING<br/>client keeps asking]
+    C -->|server -> client| D{"One-way or two-way?"}
+
+    D -->|one-way| SSE[SSE<br/>EventSource, server push]
+    D -->|two-way<br/>chat, voice, collab,<br/>interruption| WS[WEBSOCKET<br/>full-duplex]
+
+    classDef q fill:#fff2cc,stroke:#d6b656,color:#000,font-weight:bold
+    classDef leaf fill:#d5e8d4,stroke:#82b366,color:#000,font-weight:bold
+    classDef rest fill:#f5f5f5,stroke:#666,color:#000
+    classDef webhook fill:#dae8fc,stroke:#6c8ebf,color:#000,font-weight:bold
+    classDef poll fill:#f8cecc,stroke:#b85450,color:#000,font-weight:bold
+    classDef ws fill:#e1d5e7,stroke:#9673a6,color:#000,font-weight:bold
+    class A,B,C,D q
+    class SSE leaf
+    class REST rest
+    class WH webhook
+    class POLL poll
+    class WS ws
 ```
 
 ---

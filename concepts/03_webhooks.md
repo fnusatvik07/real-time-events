@@ -8,23 +8,15 @@
 
 A webhook is just an HTTP endpoint **you** expose, that **someone else** calls when something interesting happens to them.
 
-```
-THIRD-PARTY              YOUR SERVER
-(Stripe, GitHub, etc.)
-  |                          |
-  |  Payment succeeds!       |
-  |                          |
-  |  POST https://yourapp.com/webhooks/stripe
-  |   {                      |
-  |     "type": "payment.succeeded",
-  |     "amount": 5000,      |
-  |     "id": "pi_123"       |
-  |   }                      |
-  |  ----------------------> |
-  |                          |  (process, update DB, notify user)
-  |                          |
-  |  <---- 200 OK ---------- |
-  |                          |
+```mermaid
+sequenceDiagram
+    autonumber
+    participant T as Third-party<br/>(Stripe, GitHub, ...)
+    participant Y as Your server<br/>https://yourapp.com/webhooks/stripe
+    Note over T: Event fires<br/>(payment succeeds)
+    T->>Y: POST /webhooks/stripe<br/>{ "type": "payment.succeeded",<br/>  "amount": 5000,<br/>  "id": "pi_123" }
+    Note over Y: verify signature<br/>dedup by event id<br/>enqueue work
+    Y-->>T: 200 OK (fast)
 ```
 
 You configured your URL ahead of time in the third party's dashboard. They remember it and call it when relevant events fire.

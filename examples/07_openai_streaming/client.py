@@ -16,6 +16,7 @@ Run AFTER picking up the API key:
 """
 from __future__ import annotations
 
+import argparse
 import os
 import sys
 import time
@@ -42,18 +43,48 @@ from openai import OpenAI
 client = OpenAI()
 
 
+# System prompt: defines the agent's persona and the SHAPE of every answer.
+# We aim for a little more depth than "one liner per dish" - 2-3 sentences
+# of context per recommendation plus a useful tip. Still concise overall.
 SYSTEM_PROMPT = """\
 You are the restaurant recommendation agent for LiveOrder, a food delivery
 app in India. You help customers pick dishes based on their cravings,
-budget, and dietary preferences. Be concise: name 3 dishes, one line of
-description each, and where to typically find them. Keep prices in INR.
-Friendly but efficient - the customer is hungry.
+budget, and dietary preferences.
+
+For each recommendation include:
+  - The dish name (bold isn't needed, just clear).
+  - 2-3 sentences on why it fits the request (texture, spice, mood).
+  - A practical tip - where it tends to be best in the city, what to
+    pair it with, or what to watch for when ordering.
+
+Keep prices in INR. Friendly and warm - the customer is hungry but also
+curious. Don't use markdown headers; plain numbered paragraphs read best
+in a streaming chat UI.
 """
 
-USER_PROMPT = (
+DEFAULT_PROMPT = (
     "I'm in Bengaluru and want vegetarian Indian dinner under 500 INR. "
     "Something spicy and filling. Suggest 3 dishes."
 )
+
+
+# ---------------------------------------------------------------------------
+# CLI args
+# ---------------------------------------------------------------------------
+parser = argparse.ArgumentParser(
+    description="Stream a real OpenAI response from a LiveOrder-themed agent."
+)
+parser.add_argument(
+    "-p", "--prompt",
+    default=DEFAULT_PROMPT,
+    help="The question to ask the agent. Defaults to the LiveOrder dinner prompt.",
+)
+parser.add_argument(
+    "--model",
+    default="gpt-4o-mini",
+    help="OpenAI model name (default: gpt-4o-mini).",
+)
+args = parser.parse_args()
 
 
 banner(
@@ -68,7 +99,11 @@ print(f"  {YELLOW}{BOLD}SYSTEM{RESET}    (the role we've assigned the LLM)")
 for line in SYSTEM_PROMPT.strip().splitlines():
     print(f"            {line}")
 print()
-print(f"  {YELLOW}{BOLD}USER{RESET}      {USER_PROMPT}")
+print(f"  {YELLOW}{BOLD}USER{RESET}      {args.prompt}")
+if args.prompt == DEFAULT_PROMPT:
+    print()
+    note("(default prompt - pass your own with -p / --prompt to ask anything)")
+    note('  e.g.  python client.py -p "What should I eat in Mumbai under 200 INR?"')
 
 divider()
 pause()
@@ -86,10 +121,10 @@ chunk_count = 0
 total_chars = 0
 
 stream = client.chat.completions.create(
-    model="gpt-4o-mini",
+    model=args.model,
     messages=[
         {"role": "system", "content": SYSTEM_PROMPT},
-        {"role": "user", "content": USER_PROMPT},
+        {"role": "user", "content": args.prompt},
     ],
     stream=True,
 )
@@ -113,7 +148,7 @@ pause()
 # ---- Step 3: stream stats ---------------------------------------------
 demo(3, "What just happened on the wire")
 summary_table([
-    ("Model",                      "gpt-4o-mini"),
+    ("Model",                      args.model),
     ("Chunks received (SSE events)", str(chunk_count)),
     ("Total characters",            str(total_chars)),
     ("Time to first token",         f"{first_token_at*1000:.0f} ms" if first_token_at else "n/a"),

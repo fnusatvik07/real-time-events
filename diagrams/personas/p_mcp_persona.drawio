@@ -1,0 +1,19 @@
+        <mxfile host="app.diagrams.net">
+          <diagram name="p_mcp_persona" id="p_mcp_persona">
+            <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1"
+                          tooltips="1" connect="1" arrows="1" fold="1" page="1"
+                          pageScale="1" pageWidth="1060" pageHeight="480"
+                          math="0" shadow="0">
+              <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="b1" value="Claude Desktop&#10;MCP host (calls tools)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d1fae5;strokeColor=#10a37f;fontSize=13;fontStyle=1;align=center;verticalAlign=middle;strokeWidth=2;" vertex="1" parent="1"><mxGeometry x="100" y="90" width="260" height="110" as="geometry"/></mxCell>
+<mxCell id="b2" value="Maya's MCP server&#10;Exposes liveorder.query_orders" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=13;fontStyle=1;align=center;verticalAlign=middle;strokeWidth=2;" vertex="1" parent="1"><mxGeometry x="700" y="90" width="260" height="110" as="geometry"/></mxCell>
+<mxCell id="e3" value="POST /mcp  tools/call  { restaurant_id: 42 }" style="endArrow=classic;startArrow=none;html=1;rounded=0;strokeColor=#bbb;strokeWidth=2.5;fontSize=11;fontColor=#FFFFFF;labelBackgroundColor=#0B0E14;edgeStyle=none;exitX=1;exitY=0.3;exitDx=0;exitDy=0;entryX=0;entryY=0.3;entryDx=0;entryDy=0;" edge="1" parent="1" source="b1" target="b2"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="e4" value="SSE: progress, progress, result" style="endArrow=classic;startArrow=none;html=1;rounded=0;strokeColor=#bbb;strokeWidth=2.5;fontSize=11;fontColor=#FFFFFF;labelBackgroundColor=#0B0E14;dashed=1;edgeStyle=none;exitX=1;exitY=0.7;exitDx=0;exitDy=0;entryX=0;entryY=0.7;entryDx=0;entryDy=0;" edge="1" parent="1" source="b2" target="b1"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="c5" value="Why SSE for MCP?&#10;  Tool calls take real time (DB queries, web fetches, summarising).&#10;  One tool call typically produces many progress events.&#10;  Standard HTTP - no WebSocket upgrade. Easy to host anywhere.&#10;  Resumable via Last-Event-ID on reconnect." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;fontColor=#111;align=center;verticalAlign=middle;spacingLeft=12;spacingRight=12;spacingTop=8;spacingBottom=8;strokeWidth=1.5;" vertex="1" parent="1"><mxGeometry x="100" y="250" width="860" height="110" as="geometry"/></mxCell>
+<mxCell id="c6" value="From the user's perspective, Claude asks 'how many veg orders did Priya's restaurant have last week?' and gets a real answer that came from Maya's database. The MCP transport is SSE the whole way." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;fontColor=#111;align=center;verticalAlign=middle;spacingLeft=12;spacingRight=12;spacingTop=8;spacingBottom=8;strokeWidth=1.5;" vertex="1" parent="1"><mxGeometry x="100" y="380" width="860" height="80" as="geometry"/></mxCell>
+              </root>
+            </mxGraphModel>
+          </diagram>
+        </mxfile>

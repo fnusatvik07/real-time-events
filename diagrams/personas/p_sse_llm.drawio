@@ -1,0 +1,21 @@
+        <mxfile host="app.diagrams.net">
+          <diagram name="p_sse_llm" id="p_sse_llm">
+            <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1"
+                          tooltips="1" connect="1" arrows="1" fold="1" page="1"
+                          pageScale="1" pageWidth="1080" pageHeight="420"
+                          math="0" shadow="0">
+              <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="d1" value="Raj's phone&#10;AI food recommender chat" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;strokeWidth=1.5;" vertex="1" parent="1"><mxGeometry x="60" y="110" width="200" height="110" as="geometry"/></mxCell>
+<mxCell id="b2" value="Maya's backend&#10;Vercel-AI-SDK style proxy" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=13;fontStyle=1;align=center;verticalAlign=middle;strokeWidth=2;" vertex="1" parent="1"><mxGeometry x="420" y="110" width="220" height="110" as="geometry"/></mxCell>
+<mxCell id="b3" value="OpenAI&#10;gpt-4o-mini  stream=True" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d1fae5;strokeColor=#10a37f;fontSize=13;fontStyle=1;align=center;verticalAlign=middle;strokeWidth=2;" vertex="1" parent="1"><mxGeometry x="800" y="110" width="220" height="110" as="geometry"/></mxCell>
+<mxCell id="e4" value="POST /chat   {prompt}" style="endArrow=classic;startArrow=none;html=1;rounded=0;strokeColor=#bbb;strokeWidth=1.6;fontSize=11;fontColor=#FFFFFF;labelBackgroundColor=#0B0E14;edgeStyle=none;exitX=1;exitY=0.3;exitDx=0;exitDy=0;entryX=0;entryY=0.3;entryDx=0;entryDy=0;" edge="1" parent="1" source="d1" target="b2"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="e5" value="SSE: token, token, ...   (relayed)" style="endArrow=classic;startArrow=none;html=1;rounded=0;strokeColor=#bbb;strokeWidth=2.5;fontSize=11;fontColor=#FFFFFF;labelBackgroundColor=#0B0E14;dashed=1;edgeStyle=none;exitX=1;exitY=0.7;exitDx=0;exitDy=0;entryX=0;entryY=0.7;entryDx=0;entryDy=0;" edge="1" parent="1" source="b2" target="d1"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="e6" value="messages.create  stream=True" style="endArrow=classic;startArrow=none;html=1;rounded=0;strokeColor=#bbb;strokeWidth=1.6;fontSize=11;fontColor=#FFFFFF;labelBackgroundColor=#0B0E14;edgeStyle=none;exitX=1;exitY=0.3;exitDx=0;exitDy=0;entryX=0;entryY=0.3;entryDx=0;entryDy=0;" edge="1" parent="1" source="b2" target="b3"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="e7" value="SSE: token, token, ..." style="endArrow=classic;startArrow=none;html=1;rounded=0;strokeColor=#bbb;strokeWidth=1.6;fontSize=11;fontColor=#FFFFFF;labelBackgroundColor=#0B0E14;dashed=1;edgeStyle=none;exitX=1;exitY=0.7;exitDx=0;exitDy=0;entryX=0;entryY=0.7;entryDx=0;entryDy=0;" edge="1" parent="1" source="b3" target="b2"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="c8" value="Why proxy through Maya's backend instead of letting the browser call OpenAI directly?&#10;&#10;  1.  The API key never reaches the browser.&#10;  2.  Maya can log/filter/rate-limit prompts.&#10;  3.  Cookies and domain stay simple - the browser only talks to liveorder.app." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;fontColor=#111;align=center;verticalAlign=middle;spacingLeft=12;spacingRight=12;spacingTop=8;spacingBottom=8;strokeWidth=1.5;" vertex="1" parent="1"><mxGeometry x="60" y="280" width="960" height="110" as="geometry"/></mxCell>
+              </root>
+            </mxGraphModel>
+          </diagram>
+        </mxfile>

@@ -1,0 +1,19 @@
+        <mxfile host="app.diagrams.net">
+          <diagram name="p_long_polling_uber" id="p_long_polling_uber">
+            <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1"
+                          tooltips="1" connect="1" arrows="1" fold="1" page="1"
+                          pageScale="1" pageWidth="1120" pageHeight="500"
+                          math="0" shadow="0">
+              <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="d1" value="Raj's phone&#10;Tap 'Request ride'" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;strokeWidth=1.5;" vertex="1" parent="1"><mxGeometry x="100" y="100" width="220" height="110" as="geometry"/></mxCell>
+<mxCell id="b2" value="Uber dispatch&#10;Matching service" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f3f4f6;strokeColor=#000000;fontSize=13;fontStyle=1;align=center;verticalAlign=middle;strokeWidth=2;" vertex="1" parent="1"><mxGeometry x="800" y="100" width="220" height="110" as="geometry"/></mxCell>
+<mxCell id="e3" value="POST /rides   (then the request just hangs...)" style="endArrow=classic;startArrow=none;html=1;rounded=0;strokeColor=#bbb;strokeWidth=2.5;fontSize=11;fontColor=#FFFFFF;labelBackgroundColor=#0B0E14;edgeStyle=none;exitX=1;exitY=0.3;exitDx=0;exitDy=0;entryX=0;entryY=0.3;entryDx=0;entryDy=0;" edge="1" parent="1" source="d1" target="b2"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="e4" value="6 seconds later:  {&quot;driver&quot;: &quot;Sam&quot;, &quot;vehicle&quot;: &quot;TN-09-...&quot;}" style="endArrow=classic;startArrow=none;html=1;rounded=0;strokeColor=#bbb;strokeWidth=2.5;fontSize=11;fontColor=#FFFFFF;labelBackgroundColor=#0B0E14;dashed=1;edgeStyle=none;exitX=1;exitY=0.7;exitDx=0;exitDy=0;entryX=0;entryY=0.7;entryDx=0;entryDy=0;" edge="1" parent="1" source="b2" target="d1"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="c5" value="ONE request instead of many&#10;Short polling would have fired ~6 requests at 1s interval, 5 of them empty.&#10;Long polling sent 1, got the answer the moment a driver accepted, no waste." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;fontColor=#111;align=center;verticalAlign=middle;spacingLeft=12;spacingRight=12;spacingTop=8;spacingBottom=8;strokeWidth=1.5;" vertex="1" parent="1"><mxGeometry x="100" y="270" width="920" height="100" as="geometry"/></mxCell>
+<mxCell id="c6" value="Watch out&#10;Server must use async I/O (one held connection per rider). Server's timeout MUST be shorter than the load-balancer's idle timeout, or the LB cuts the connection first." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;fontColor=#111;align=center;verticalAlign=middle;spacingLeft=12;spacingRight=12;spacingTop=8;spacingBottom=8;strokeWidth=1.5;" vertex="1" parent="1"><mxGeometry x="100" y="390" width="920" height="80" as="geometry"/></mxCell>
+              </root>
+            </mxGraphModel>
+          </diagram>
+        </mxfile>

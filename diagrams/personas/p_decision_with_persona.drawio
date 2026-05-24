@@ -1,0 +1,31 @@
+        <mxfile host="app.diagrams.net">
+          <diagram name="p_decision_with_persona" id="p_decision_with_persona">
+            <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1"
+                          tooltips="1" connect="1" arrows="1" fold="1" page="1"
+                          pageScale="1" pageWidth="1200" pageHeight="720"
+                          math="0" shadow="0">
+              <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="q1" value="Does this feature need real-time updates?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=13;fontStyle=1;strokeWidth=1.5;" vertex="1" parent="1"><mxGeometry x="490" y="110" width="220" height="80" as="geometry"/></mxCell>
+<mxCell id="lf2" value="REST&#10;(plain request/response)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;strokeWidth=1.5;" vertex="1" parent="1"><mxGeometry x="60" y="125" width="220" height="50" as="geometry"/></mxCell>
+<mxCell id="e3" value="no" style="endArrow=classic;html=1;rounded=0;strokeColor=#333;strokeWidth=1.6;fontSize=11;edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="q1" target="lf2"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="q4" value="Who fires the event?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=13;fontStyle=1;strokeWidth=1.5;" vertex="1" parent="1"><mxGeometry x="490" y="240" width="220" height="80" as="geometry"/></mxCell>
+<mxCell id="e5" value="yes" style="endArrow=classic;html=1;rounded=0;strokeColor=#333;strokeWidth=1.6;fontSize=11;edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="q1" target="q4"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="lf6" value="WEBHOOK&#10;Stripe paid, GitHub PR, etc." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ddd6fe;strokeColor=#7c3aed;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;strokeWidth=1.5;" vertex="1" parent="1"><mxGeometry x="920" y="255" width="220" height="50" as="geometry"/></mxCell>
+<mxCell id="e7" value="external service" style="endArrow=classic;html=1;rounded=0;strokeColor=#333;strokeWidth=1.6;fontSize=11;edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="q4" target="lf6"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="q8" value="Which way does data flow?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=13;fontStyle=1;strokeWidth=1.5;" vertex="1" parent="1"><mxGeometry x="490" y="370" width="220" height="80" as="geometry"/></mxCell>
+<mxCell id="e9" value="your own server" style="endArrow=classic;html=1;rounded=0;strokeColor=#333;strokeWidth=1.6;fontSize=11;edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="q4" target="q8"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="lf10" value="POLLING&#10;client asks on a timer" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffedd5;strokeColor=#fc8019;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;strokeWidth=1.5;" vertex="1" parent="1"><mxGeometry x="60" y="385" width="220" height="50" as="geometry"/></mxCell>
+<mxCell id="e11" value="client to server only" style="endArrow=classic;html=1;rounded=0;strokeColor=#333;strokeWidth=1.6;fontSize=11;edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="q8" target="lf10"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="q12" value="One-way push, or two-way chat?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=13;fontStyle=1;strokeWidth=1.5;" vertex="1" parent="1"><mxGeometry x="490" y="500" width="220" height="80" as="geometry"/></mxCell>
+<mxCell id="e13" value="server to client" style="endArrow=classic;html=1;rounded=0;strokeColor=#333;strokeWidth=1.6;fontSize=11;edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="q8" target="q12"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="lf14" value="SSE&#10;live status, LLM streaming" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d1fae5;strokeColor=#10a37f;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;strokeWidth=1.5;" vertex="1" parent="1"><mxGeometry x="60" y="515" width="220" height="50" as="geometry"/></mxCell>
+<mxCell id="e15" value="one-way" style="endArrow=classic;html=1;rounded=0;strokeColor=#333;strokeWidth=1.6;fontSize=11;edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="q12" target="lf14"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="lf16" value="WEBSOCKET&#10;chat, voice, collab" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;strokeWidth=1.5;" vertex="1" parent="1"><mxGeometry x="920" y="515" width="220" height="50" as="geometry"/></mxCell>
+<mxCell id="e17" value="two-way" style="endArrow=classic;html=1;rounded=0;strokeColor=#333;strokeWidth=1.6;fontSize=11;edgeStyle=orthogonalEdgeStyle;" edge="1" parent="1" source="q12" target="lf16"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="c18" value="Maya's rule of thumb: default to SSE for server-to-client. Reach for WebSocket only when you genuinely need bidirectional (chat/voice/games/collab). Polling for batch checks. Webhooks for external triggers." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;fontColor=#111;align=center;verticalAlign=middle;spacingLeft=12;spacingRight=12;spacingTop=8;spacingBottom=8;strokeWidth=1.5;" vertex="1" parent="1"><mxGeometry x="60" y="620" width="1080" height="70" as="geometry"/></mxCell>
+              </root>
+            </mxGraphModel>
+          </diagram>
+        </mxfile>

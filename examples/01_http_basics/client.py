@@ -25,7 +25,7 @@ from _pretty import (
     request_line, request_header, request_body,
     show_response,
     lesson, note, warn, preflight_check,
-    CYAN, DIM, BOLD, RESET, MAGENTA, GREEN, YELLOW,
+    CYAN, DIM, BOLD, RESET, GREEN, YELLOW, BRIGHT_CYAN,
 )
 
 import httpx

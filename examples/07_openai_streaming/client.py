@@ -26,7 +26,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from _pretty import (
     banner, demo, divider, pause,
     lesson, note, info, ok, warn, fail, summary_table,
-    GREEN, YELLOW, CYAN, MAGENTA, DIM, BOLD, RESET,
+    GREEN, YELLOW, CYAN, BRIGHT_GREEN, BRIGHT_CYAN, DIM, BOLD, RESET,
 )
 
 from dotenv import load_dotenv
@@ -95,11 +95,11 @@ banner(
 
 # ---- Step 1: show what we're sending ----------------------------------
 demo(1, "What the agent receives")
-print(f"  {YELLOW}{BOLD}SYSTEM{RESET}    (the role we've assigned the LLM)")
+print(f"  {DIM}{BOLD}SYSTEM  {RESET}  {DIM}(the role we've assigned the LLM){RESET}")
 for line in SYSTEM_PROMPT.strip().splitlines():
-    print(f"            {line}")
+    print(f"            {DIM}{line}{RESET}")
 print()
-print(f"  {YELLOW}{BOLD}USER{RESET}      {args.prompt}")
+print(f"  {YELLOW}{BOLD}USER    {RESET}  {args.prompt}")
 if args.prompt == DEFAULT_PROMPT:
     print()
     note("(default prompt - pass your own with -p / --prompt to ask anything)")
@@ -113,7 +113,7 @@ pause()
 demo(2, "Stream the response (each chunk is one SSE event from OpenAI)")
 note("watch the words appear one at a time - that's SSE in action")
 print()
-print(f"  {MAGENTA}{BOLD}AGENT{RESET}     ", end="", flush=True)
+print(f"  {BRIGHT_GREEN}{BOLD}AGENT   {RESET}  ", end="", flush=True)
 
 t0 = time.time()
 first_token_at: float | None = None

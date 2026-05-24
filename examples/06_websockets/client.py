@@ -38,7 +38,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from _pretty import (
     banner, demo, divider,
     lesson, note, info, ok, warn, preflight_check,
-    GREEN, CYAN, YELLOW, MAGENTA, BLUE, RED, DIM, BOLD, RESET, event,
+    GREEN, BRIGHT_GREEN, CYAN, YELLOW, BLUE, BRIGHT_BLUE, RED, BRIGHT_RED, DIM, BOLD, RESET, event,
 )
 
 import websockets

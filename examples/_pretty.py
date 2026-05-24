@@ -45,6 +45,8 @@ def _c(code: str) -> str:
 RESET   = _c("\033[0m")
 BOLD    = _c("\033[1m")
 DIM     = _c("\033[2m")
+
+# Standard colours (saturated, slightly darker)
 CYAN    = _c("\033[36m")
 GREEN   = _c("\033[32m")
 YELLOW  = _c("\033[33m")
@@ -52,31 +54,55 @@ RED     = _c("\033[31m")
 MAGENTA = _c("\033[35m")
 BLUE    = _c("\033[34m")
 WHITE   = _c("\033[37m")
+GREY    = _c("\033[90m")
+
+# Bright variants (more vibrant; better for callouts that need to pop)
+BRIGHT_CYAN   = _c("\033[96m")
+BRIGHT_GREEN  = _c("\033[92m")
+BRIGHT_YELLOW = _c("\033[93m")
+BRIGHT_RED    = _c("\033[91m")
+BRIGHT_BLUE   = _c("\033[94m")
+
+# Semantic aliases used through the rest of the file.
+# Inspired by modern dev tools (gh CLI, Vercel, Stripe CLI):
+#   - cyan for structure
+#   - amber/yellow for "your action" + warnings
+#   - green for success / agent output
+#   - red only for real errors
+#   - no magenta in chrome (some downstream files still import it for accents)
+PRIMARY_BAR     = BRIGHT_CYAN   # banner top and bottom
+SECTION_BAR     = CYAN          # per-demo headers
+HIGHLIGHT_LABEL = BRIGHT_YELLOW  # LESSON callouts - highlighter style
+REQUEST_COLOR   = YELLOW
+INFO_COLOR      = BRIGHT_CYAN
+OK_COLOR        = BRIGHT_GREEN
+FAIL_COLOR      = BRIGHT_RED
+WARN_COLOR      = BRIGHT_YELLOW
 
 
 # ----- headings & dividers -----------------------------------------------
 def banner(title: str, subtitle: str | None = None) -> None:
-    """Top banner for the whole script."""
+    """Top-level banner for the whole script. Bright-cyan double-bar."""
     bar = "═" * WIDTH
     print()
-    print(f"{CYAN}{bar}{RESET}")
+    print(f"{PRIMARY_BAR}{bar}{RESET}")
     print(f"  {BOLD}{title}{RESET}")
     if subtitle:
         print(f"  {DIM}{subtitle}{RESET}")
-    print(f"{CYAN}{bar}{RESET}")
+    print(f"{PRIMARY_BAR}{bar}{RESET}")
 
 
 def demo(num: int, title: str) -> None:
-    """Per-demo header. Numbered."""
-    label_text = f" Demo {num}: {title} "
-    bar_len = max(2, WIDTH - len(label_text))
+    """Per-demo header. Cyan single-bar with bold step label inline."""
+    label_text = f"  Step {num}  -  {title}  "
+    bar_len = max(2, WIDTH - len(label_text) - 4)
     print()
-    print(f"{MAGENTA}━━{label_text}{'━' * bar_len}{RESET}")
+    print(f"{SECTION_BAR}━━{BOLD}{label_text}{RESET}{SECTION_BAR}{'━' * bar_len}{RESET}")
     print()
 
 
 def divider() -> None:
-    """Dashed horizontal divider between examples."""
+    """Subtle dim grey horizontal rule between sections."""
     print(f"{DIM}{'─' * WIDTH}{RESET}")
 
 
@@ -87,7 +113,7 @@ def hr() -> None:
 
 # ----- request / response blocks -----------------------------------------
 def request_line(method: str, url: str) -> None:
-    print(f"  {YELLOW}{BOLD}REQUEST{RESET}   {YELLOW}{method:<6}{RESET} {url}")
+    print(f"  {REQUEST_COLOR}{BOLD}REQUEST {RESET}  {REQUEST_COLOR}{method:<6}{RESET} {url}")
 
 
 def request_header(name: str, value: str) -> None:
@@ -106,13 +132,13 @@ def request_body(obj) -> None:
 
 def response_line(status: int, reason: str = "", content_type: str = "") -> None:
     if 200 <= status < 300:
-        col = GREEN
+        col = BRIGHT_GREEN
     elif 300 <= status < 400:
-        col = CYAN
+        col = BRIGHT_CYAN
     elif 400 <= status < 500:
-        col = YELLOW
+        col = BRIGHT_YELLOW
     else:
-        col = RED
+        col = BRIGHT_RED
     ct = f"   {DIM}({content_type}){RESET}" if content_type else ""
     print(f"  {col}{BOLD}RESPONSE{RESET}  {col}{status} {reason}{RESET}{ct}")
 
@@ -138,33 +164,37 @@ def show_response(r) -> None:
 
 # ----- labelled lines ----------------------------------------------------
 def lesson(text: str) -> None:
-    """The takeaway sentence for a demo. Wraps to width, label only on line 1."""
+    """The takeaway sentence for a demo.
+
+    Rendered with a bright-yellow 'highlighter' label so the takeaway
+    stands out from the request/response lines above it.
+    """
     print()
     wrapped = textwrap.wrap(text, width=WIDTH - 14)
     for i, line in enumerate(wrapped):
-        prefix = f"  {MAGENTA}{BOLD}LESSON{RESET}    " if i == 0 else "            "
+        prefix = f"  {HIGHLIGHT_LABEL}{BOLD}LESSON  {RESET}  " if i == 0 else "            "
         print(f"{prefix}{line}")
 
 
 def note(text: str) -> None:
-    """A grey informational line, indented."""
+    """A dim grey informational line, indented under the request/response block."""
     print(f"            {DIM}{text}{RESET}")
 
 
 def info(text: str) -> None:
-    print(f"  {CYAN}{BOLD}INFO{RESET}      {text}")
+    print(f"  {INFO_COLOR}{BOLD}INFO    {RESET}  {text}")
 
 
 def ok(text: str) -> None:
-    print(f"  {GREEN}{BOLD}OK{RESET}        {text}")
+    print(f"  {OK_COLOR}{BOLD}OK      {RESET}  {text}")
 
 
 def fail(text: str) -> None:
-    print(f"  {RED}{BOLD}FAIL{RESET}      {text}")
+    print(f"  {FAIL_COLOR}{BOLD}FAIL    {RESET}  {text}")
 
 
 def warn(text: str) -> None:
-    print(f"  {YELLOW}{BOLD}WARN{RESET}      {text}")
+    print(f"  {WARN_COLOR}{BOLD}WARN    {RESET}  {text}")
 
 
 def event(label_text: str, content: str = "", color: str = CYAN) -> None:

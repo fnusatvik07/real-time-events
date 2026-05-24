@@ -20,7 +20,7 @@ from _pretty import (
     banner, demo, divider, pause,
     request_line, request_body, response_line,
     lesson, note, info, ok, summary_table, preflight_check,
-    GREEN, CYAN, YELLOW, MAGENTA, DIM, BOLD, RESET,
+    GREEN, BRIGHT_GREEN, CYAN, YELLOW, DIM, BOLD, RESET,
 )
 
 import httpx

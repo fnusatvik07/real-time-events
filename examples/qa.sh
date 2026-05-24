@@ -93,7 +93,7 @@ else
     fail "server did not start (see $LOGS/01.log)"
 fi
 OUT=$(cd "$HERE/01_http_basics" && $PYTHON client.py 2>&1)
-assert_contains "all 7 demos ran"             "$OUT" "Demo 1" "Demo 2" "Demo 3" "Demo 4" "Demo 5" "Demo 6" "Demo 7"
+assert_contains "all 7 demos ran"             "$OUT" "Step 1" "Step 2" "Step 3" "Step 4" "Step 5" "Step 6" "Step 7"
 assert_contains "shared counter increments"   "$OUT" '"counter": 1' '"counter": 2' '"counter": 3'
 assert_contains "JWT auth: valid token decoded by server" "$OUT" '"name": "Arjun Kumar"' '"user_id": "usr_arjun_8c3d2"'
 assert_contains "JWT auth: 3 sub-demos shown" "$OUT" "call A" "call B" "call C"

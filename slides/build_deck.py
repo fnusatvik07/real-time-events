@@ -121,7 +121,7 @@ def add_subtitle(slide, text, top=Inches(1.45)):
 
 def add_text(slide, text, *, left=Inches(0.6), top=Inches(2.2), width=Inches(12.0),
              height=Inches(4.0), size=18, color=TEXT, bold=False, mono=False,
-             align=PP_ALIGN.LEFT):
+             align=PP_ALIGN.LEFT, italic_via=False):
     tx = slide.shapes.add_textbox(left, top, width, height)
     tf = tx.text_frame
     tf.margin_left = tf.margin_top = 0
@@ -135,6 +135,7 @@ def add_text(slide, text, *, left=Inches(0.6), top=Inches(2.2), width=Inches(12.
         r.font.name = FONT_CODE if mono else FONT_BODY
         r.font.size = Pt(size)
         r.font.bold = bold
+        r.font.italic = italic_via
         r.font.color.rgb = color
     return tx
 
@@ -617,8 +618,11 @@ def polling_section():
                   "Raj waits for an Uber driver",
                   "One held request. The server replies the moment a driver accepts. No wasted polls.",
                   PERSONAS / "p_long_polling_uber.png")
+    slide_polling_code()
+    slide_polling_cost_math()
     slide_polling_cheaper()
     slide_polling_bugs()
+    slide_polling_when_right()
 
     # 10: trade-offs
     slide = add_blank_slide()
@@ -732,6 +736,9 @@ def webhook_section():
                   "Stripe is the source of truth. They tell Maya's backend when the card cleared.",
                   PERSONAS / "p_webhook_stripe.png")
 
+    slide_webhook_role_flip()
+    slide_webhook_payload()
+
     # the 4 rules
     slide = add_blank_slide()
     add_pattern_badge(slide, "WEBHOOK", WEBHOOK)
@@ -777,8 +784,10 @@ def webhook_section():
     add_footer(slide, len(prs.slides.__iter__.__self__._sldIdLst))
 
     # Deep dives
+    slide_webhook_receiver_code()
     slide_webhook_local_testing()
     slide_webhook_being_sender()
+    slide_webhook_real_world()
 
 
 def slide_sse_grammar():
@@ -875,6 +884,10 @@ def sse_section():
 
     # Deep dives
     slide_sse_grammar()
+    slide_sse_eventsource_api()
+    slide_sse_server_code()
+    slide_sse_must_should()
+    slide_sse_cost_picture()
     slide_sse_gotchas()
 
     # Where you've seen it
@@ -980,11 +993,18 @@ def ws_section():
                   "Both can send anytime. Typing indicators are free. One TCP connection per chat.",
                   PERSONAS / "p_ws_chat.png")
 
+    slide_ws_handshake_wire()
+    slide_ws_frames()
+
     # PAIR 2: broadcast topology -> backend in real time
     concept_slide("WEBSOCKET", WS,
                   "Broadcast topology",
                   "Server tracks connected clients and fans messages out. Across processes, use Redis pub-sub.",
                   DIAG / "11_websocket_chat.png")
+
+    slide_ws_chat_protocol()
+    slide_ws_reconnecting()
+    slide_ws_pubsub_cross_server()
 
     # Deep dives
     slide_ws_scaling()
@@ -1042,44 +1062,9 @@ def decision_section():
                   "Same tree, framed as Maya's design checklist. Same answer, more memorable.",
                   PERSONAS / "p_decision_with_persona.png")
 
-    # I'm building X recipes
-    slide = add_blank_slide()
-    add_title(slide, "'I'm building X' - 8 quick recipes")
-    add_subtitle(slide, "Common features and the pattern that fits each.")
-    recipes = [
-        ("ChatGPT-style typewriter",          "SSE",        SSE,     "Browser-native, auto-reconnect, simple"),
-        ("Slack-style chat",                   "WebSocket",  WS,      "Both directions, low latency, typing indicators"),
-        ("Stripe payment notification",        "Webhook",    WEBHOOK, "Stripe is the source of truth; let them call you"),
-        ("Live stock ticker dashboard",        "SSE",        SSE,     "One-way, many subscribers, no client input"),
-        ("Multiplayer browser game",           "WebSocket",  WS,      "Sub-100ms two-way, binary"),
-        ("Voice agent (audio in + out)",       "WebSocket",  WS,      "Bidirectional binary; SSE can't carry binary"),
-        ("'Is my batch report done?'",         "Polling",    POLLING, "Low frequency, simple, OK to be a few seconds late"),
-        ("MCP server tool calls",              "SSE",        SSE,     "One call -> many progress events; perfect fit"),
-    ]
-    top = Inches(2.2); row_h = Inches(0.52)
-    for i, (use, pat, color, why) in enumerate(recipes):
-        y = top + row_h * i
-        # use case
-        ux = slide.shapes.add_textbox(Inches(0.6), y, Inches(4.5), Inches(0.4))
-        up = ux.text_frame.paragraphs[0]
-        ur = up.add_run(); ur.text = use
-        ur.font.name = FONT_BODY; ur.font.size = Pt(14); ur.font.color.rgb = TEXT
-        # arrow
-        ax = slide.shapes.add_textbox(Inches(5.1), y, Inches(0.4), Inches(0.4))
-        ap = ax.text_frame.paragraphs[0]
-        ar = ap.add_run(); ar.text = "->"
-        ar.font.name = FONT_HEAD; ar.font.size = Pt(14); ar.font.color.rgb = DIM
-        # pattern
-        px = slide.shapes.add_textbox(Inches(5.5), y, Inches(1.6), Inches(0.4))
-        pp = px.text_frame.paragraphs[0]
-        pr = pp.add_run(); pr.text = pat
-        pr.font.name = FONT_HEAD; pr.font.size = Pt(14); pr.font.bold = True; pr.font.color.rgb = color
-        # why
-        wx = slide.shapes.add_textbox(Inches(7.2), y, Inches(5.6), Inches(0.4))
-        wp = wx.text_frame.paragraphs[0]
-        wr = wp.add_run(); wr.text = why
-        wr.font.name = FONT_BODY; wr.font.size = Pt(12); wr.font.color.rgb = MUTED
-    add_footer(slide, len(prs.slides.__iter__.__self__._sldIdLst))
+    slide_cost_ranking()
+    slide_recipes_extended()
+    slide_scale_tiers()
 
 
 def slide_ai_long_task():
@@ -1311,6 +1296,1123 @@ def slide_qa():
     add_footer(slide, len(prs.slides.__iter__.__self__._sldIdLst))
 
 
+# ===========================================================================
+# Deep-dive slides covering the rest of the concept md material
+# ===========================================================================
+
+# ---- Overview / opening -----
+def slide_liveorder_feature_map():
+    slide = add_blank_slide()
+    add_title(slide, "LiveOrder: one app, all four patterns")
+    add_subtitle(slide, "Same backend Maya runs. Each feature picks the pattern that fits.")
+    rows = [
+        ("Stripe says Raj paid",            "External event",       "WEBHOOK",  WEBHOOK),
+        ("Priya's tablet shows new orders", "Server -> restaurant", "SSE",      SSE),
+        ("Raj's order status timeline",     "Server -> customer",   "SSE",      SSE),
+        ("Raj chats with Sam about buzzer", "Two-way live",         "WEBSOCKET", WS),
+        ("Raj sees Sam's scooter on map",   "Frequent updates",     "SSE / fast polling", SSE),
+        ("Maya checks nightly pricing job", "Rare batch check",     "POLLING",   POLLING),
+    ]
+    headers = ("FEATURE", "DATA FLOW", "PATTERN")
+    col_w = [Inches(5.0), Inches(4.0), Inches(3.3)]
+    top = Inches(2.4); row_h = Inches(0.55)
+    x = Inches(0.6)
+    for i, h in enumerate(headers):
+        hx = slide.shapes.add_textbox(x, top, col_w[i], Inches(0.35))
+        hr = hx.text_frame.paragraphs[0].add_run(); hr.text = h
+        hr.font.name = FONT_HEAD; hr.font.size = Pt(12); hr.font.bold = True; hr.font.color.rgb = ACCENT
+        x += col_w[i]
+    for ri, (feat, flow, pat, col) in enumerate(rows):
+        y = top + Inches(0.45) + row_h * ri
+        # subtle alternating panel
+        if ri % 2 == 0:
+            band = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE,
+                                          Inches(0.55), y - Inches(0.05),
+                                          Inches(12.3), row_h)
+            band.fill.solid(); band.fill.fore_color.rgb = BG_PANEL
+            band.line.fill.background(); band.shadow.inherit = False
+        x = Inches(0.6)
+        for ci, cell in enumerate((feat, flow, pat)):
+            tx = slide.shapes.add_textbox(x, y, col_w[ci], row_h - Inches(0.1))
+            tp = tx.text_frame.paragraphs[0]
+            tr = tp.add_run(); tr.text = cell
+            tr.font.name = FONT_BODY; tr.font.size = Pt(14)
+            tr.font.color.rgb = col if ci == 2 else TEXT
+            tr.font.bold = (ci == 2)
+            x += col_w[ci]
+    add_text(slide, "Same backend. Four patterns. Each one chosen because it fits that feature's shape.",
+             top=Inches(6.4), size=14, color=MUTED, align=PP_ALIGN.CENTER, bold=True)
+    add_footer(slide, len(prs.slides.__iter__.__self__._sldIdLst))
+
+
+# ---- HTTP fundamentals -----
+def slide_http_request_response_raw():
+    slide = add_blank_slide()
+    add_title(slide, "HTTP on the wire - it's just text")
+    add_subtitle(slide, "Request and response are both plain text with a tiny structure. That's the entire protocol.")
+    # Two code panels side by side
+    panel_w = Inches(6.0); panel_h = Inches(4.2); top = Inches(2.4)
+    # Left - REQUEST
+    lx = Inches(0.6)
+    lcard = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, lx, top, panel_w, panel_h)
+    lcard.fill.solid(); lcard.fill.fore_color.rgb = BG_PANEL
+    lcard.line.color.rgb = ACCENT; lcard.line.width = Pt(1.0); lcard.shadow.inherit = False
+    lh = slide.shapes.add_textbox(lx + Inches(0.25), top + Inches(0.15), panel_w - Inches(0.5), Inches(0.4))
+    lhr = lh.text_frame.paragraphs[0].add_run(); lhr.text = "REQUEST  (what your browser sends)"
+    lhr.font.name = FONT_HEAD; lhr.font.size = Pt(13); lhr.font.bold = True; lhr.font.color.rgb = ACCENT
+    req = """GET /api/users HTTP/1.1
+Host: api.example.com
+Accept: application/json
+Authorization: Bearer eyJhbGciOiJ...
+User-Agent: Mozilla/5.0 ...
+
+"""
+    tx = slide.shapes.add_textbox(lx + Inches(0.25), top + Inches(0.65), panel_w - Inches(0.5), panel_h - Inches(0.9))
+    tf = tx.text_frame; tf.word_wrap = True
+    for i, line in enumerate(req.split("\n")):
+        p = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
+        r = p.add_run(); r.text = line if line else " "
+        r.font.name = FONT_CODE; r.font.size = Pt(12); r.font.color.rgb = TEXT
+    # Right - RESPONSE
+    rx = Inches(6.8)
+    rcard = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, rx, top, panel_w, panel_h)
+    rcard.fill.solid(); rcard.fill.fore_color.rgb = BG_PANEL
+    rcard.line.color.rgb = SSE; rcard.line.width = Pt(1.0); rcard.shadow.inherit = False
+    rh = slide.shapes.add_textbox(rx + Inches(0.25), top + Inches(0.15), panel_w - Inches(0.5), Inches(0.4))
+    rhr = rh.text_frame.paragraphs[0].add_run(); rhr.text = "RESPONSE  (what the server replies)"
+    rhr.font.name = FONT_HEAD; rhr.font.size = Pt(13); rhr.font.bold = True; rhr.font.color.rgb = SSE
+    res = """HTTP/1.1 200 OK
+Content-Type: application/json
+Content-Length: 348
+Cache-Control: no-store
+
+{"users":[
+  {"id":1,"name":"Maya"},
+  {"id":2,"name":"Raj"}
+]}"""
+    tx = slide.shapes.add_textbox(rx + Inches(0.25), top + Inches(0.65), panel_w - Inches(0.5), panel_h - Inches(0.9))
+    tf = tx.text_frame; tf.word_wrap = True
+    for i, line in enumerate(res.split("\n")):
+        p = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
+        r = p.add_run(); r.text = line if line else " "
+        r.font.name = FONT_CODE; r.font.size = Pt(12); r.font.color.rgb = TEXT
+    add_text(slide, "Method + path + headers + blank line + optional body.  Status line + headers + blank line + body.",
+             top=Inches(6.85), size=12, color=MUTED, align=PP_ALIGN.CENTER, italic_via=True)
+    add_footer(slide, len(prs.slides.__iter__.__self__._sldIdLst))
+
+
+def slide_stateless_concept():
+    slide = add_blank_slide()
+    add_title(slide, "Stateless - the single property that makes real-time hard")
+    add_subtitle(slide, "The server has no memory between requests. The client carries everything.")
+    body = (
+        "Two requests one second apart  =  two strangers walking up to a counter.\n"
+        "The server doesn't remember 'Maya is logged in' - it re-derives it from the token Maya's browser\n"
+        "sends with every single request.\n\n"
+        "This is GREAT for scale (any server can serve any request) but TERRIBLE for real-time:\n\n"
+        "When a new message arrives on the server for Raj, the server cannot say 'let me notify Raj' -\n"
+        "there is no open line to Raj. There is no phone number. There is no email address baked in.\n\n"
+        "The four real-time patterns are all answers to the question:\n"
+        "  'how do we work around HTTP being request/response, stateless, and client-initiated?'"
+    )
+    add_text(slide, body, top=Inches(2.4), size=15, color=TEXT)
+    # Three workarounds at the bottom
+    items = [
+        ("Polling",   "client keeps asking",                          POLLING),
+        ("SSE / WS",  "client opens a long-lived line; server pushes", SSE),
+        ("Webhook",   "an external system already had a line to your server", WEBHOOK),
+    ]
+    top = Inches(5.8); w = Inches(4.0); gap = Inches(0.15)
+    for i, (head, body, color) in enumerate(items):
+        x = Inches(0.6) + (w + gap) * i
+        card = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, x, top, w, Inches(1.0))
+        card.fill.solid(); card.fill.fore_color.rgb = BG_PANEL
+        card.line.color.rgb = color; card.line.width = Pt(1.5); card.shadow.inherit = False
+        hx = slide.shapes.add_textbox(x + Inches(0.2), top + Inches(0.1), w - Inches(0.4), Inches(0.35))
+        hr = hx.text_frame.paragraphs[0].add_run(); hr.text = head
+        hr.font.name = FONT_HEAD; hr.font.size = Pt(14); hr.font.bold = True; hr.font.color.rgb = color
+        bx = slide.shapes.add_textbox(x + Inches(0.2), top + Inches(0.45), w - Inches(0.4), Inches(0.5))
+        bf = bx.text_frame; bf.word_wrap = True
+        br = bf.paragraphs[0].add_run(); br.text = body
+        br.font.name = FONT_BODY; br.font.size = Pt(12); br.font.color.rgb = TEXT
+    add_footer(slide, len(prs.slides.__iter__.__self__._sldIdLst))
+
+
+def slide_http_versions():
+    slide = add_blank_slide()
+    add_title(slide, "HTTP versions in 90 seconds")
+    add_subtitle(slide, "All four real-time patterns are identical across versions. Only scaling limits differ.")
+    rows = [
+        ("HTTP/1.0", "one TCP connection per request",
+         "mostly historical"),
+        ("HTTP/1.1", "keep-alive (re-use connections), chunked transfer",
+         "what most 'long-lived' patterns assume; SSE works here but is limited to 6 connections per host in browsers"),
+        ("HTTP/2",   "one TCP connection multiplexes many parallel requests",
+         "SSE works much better here; modern default everywhere"),
+        ("HTTP/3",   "same idea as HTTP/2 but runs on UDP (QUIC)",
+         "better on flaky mobile; connection survives IP changes"),
+    ]
+    top = Inches(2.5); h = Inches(0.95); gap = Inches(0.1)
+    for i, (ver, change, care) in enumerate(rows):
+        y = top + (h + gap) * i
+        card = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(0.6), y, Inches(12.13), h)
+        card.fill.solid(); card.fill.fore_color.rgb = BG_PANEL
+        card.line.color.rgb = BORDER; card.line.width = Pt(0.5); card.shadow.inherit = False
+        vx = slide.shapes.add_textbox(Inches(0.85), y + Inches(0.15), Inches(2.0), Inches(0.4))
+        vr = vx.text_frame.paragraphs[0].add_run(); vr.text = ver
+        vr.font.name = FONT_HEAD; vr.font.size = Pt(15); vr.font.bold = True; vr.font.color.rgb = ACCENT
+        cx = slide.shapes.add_textbox(Inches(3.0), y + Inches(0.15), Inches(4.5), Inches(0.4))
+        cr = cx.text_frame.paragraphs[0].add_run(); cr.text = change
+        cr.font.name = FONT_BODY; cr.font.size = Pt(13); cr.font.color.rgb = TEXT; cr.font.bold = True
+        wx = slide.shapes.add_textbox(Inches(0.85), y + Inches(0.5), Inches(11.5), Inches(0.4))
+        wf = wx.text_frame; wf.word_wrap = True
+        wr = wf.paragraphs[0].add_run(); wr.text = "why care: " + care
+        wr.font.name = FONT_BODY; wr.font.size = Pt(12); wr.font.color.rgb = MUTED
+    add_footer(slide, len(prs.slides.__iter__.__self__._sldIdLst))
+
+
+# ---- Polling additions -----
+def slide_polling_code():
+    slide = add_blank_slide()
+    add_pattern_badge(slide, "POLLING", POLLING)
+    add_title(slide, "Short polling in 18 lines", top=Inches(1.15))
+    add_subtitle(slide, "The whole pattern - client setInterval, server returns current state.",
+                 top=Inches(1.95))
+    panel_w = Inches(6.0); panel_h = Inches(4.4); top = Inches(2.5)
+    # Client JS
+    lx = Inches(0.6)
+    lcard = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, lx, top, panel_w, panel_h)
+    lcard.fill.solid(); lcard.fill.fore_color.rgb = BG_PANEL
+    lcard.line.color.rgb = POLLING; lcard.line.width = Pt(1.0); lcard.shadow.inherit = False
+    lh = slide.shapes.add_textbox(lx + Inches(0.25), top + Inches(0.15), panel_w - Inches(0.5), Inches(0.4))
+    lhr = lh.text_frame.paragraphs[0].add_run(); lhr.text = "client.js  (8 lines)"
+    lhr.font.name = FONT_HEAD; lhr.font.size = Pt(13); lhr.font.bold = True; lhr.font.color.rgb = POLLING
+    code_js = """let last = null;
+const id = setInterval(async () => {
+  const r = await fetch(`/orders/${o}/status`);
+  const { status } = await r.json();
+  if (status !== last) {
+    updateUI(status);
+    last = status;
+  }
+  if (status === "delivered") clearInterval(id);
+}, 3000);   // poll every 3 seconds
+"""
+    tx = slide.shapes.add_textbox(lx + Inches(0.25), top + Inches(0.65), panel_w - Inches(0.5), panel_h - Inches(0.9))
+    tf = tx.text_frame; tf.word_wrap = False
+    for i, line in enumerate(code_js.split("\n")):
+        p = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
+        r = p.add_run(); r.text = line if line else " "
+        r.font.name = FONT_CODE; r.font.size = Pt(13); r.font.color.rgb = TEXT
+    # Server Python
+    rx = Inches(6.8)
+    rcard = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, rx, top, panel_w, panel_h)
+    rcard.fill.solid(); rcard.fill.fore_color.rgb = BG_PANEL
+    rcard.line.color.rgb = SSE; rcard.line.width = Pt(1.0); rcard.shadow.inherit = False
+    rh = slide.shapes.add_textbox(rx + Inches(0.25), top + Inches(0.15), panel_w - Inches(0.5), Inches(0.4))
+    rhr = rh.text_frame.paragraphs[0].add_run(); rhr.text = "server.py  (4 lines)"
+    rhr.font.name = FONT_HEAD; rhr.font.size = Pt(13); rhr.font.bold = True; rhr.font.color.rgb = SSE
+    code_py = """@app.get("/orders/{order_id}/status")
+def get_status(order_id: int):
+    order = db.get_order(order_id)
+    return {"status": order.status}
+"""
+    tx = slide.shapes.add_textbox(rx + Inches(0.25), top + Inches(0.65), panel_w - Inches(0.5), panel_h - Inches(0.9))
+    tf = tx.text_frame; tf.word_wrap = False
+    for i, line in enumerate(code_py.split("\n")):
+        p = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
+        r = p.add_run(); r.text = line if line else " "
+        r.font.name = FONT_CODE; r.font.size = Pt(13); r.font.color.rgb = TEXT
+    add_footer(slide, len(prs.slides.__iter__.__self__._sldIdLst))
+
+
+def slide_polling_cost_math():
+    slide = add_blank_slide()
+    add_pattern_badge(slide, "POLLING", POLLING)
+    add_title(slide, "The hidden cost of short polling", top=Inches(1.15))
+    add_subtitle(slide, "Raj's order: 25 minutes, status changes 5 times, polled every 3 seconds.",
+                 top=Inches(1.95))
+    # Three big stat tiles
+    stats = [
+        ("500",   "polls fired",        TEXT),
+        ("5",     "actually meaningful", SSE),
+        ("99%",   "wasted",             WEBHOOK),
+    ]
+    top = Inches(2.7); w = Inches(4.0); gap = Inches(0.1)
+    for i, (num, label, col) in enumerate(stats):
+        x = Inches(0.6) + (w + gap) * i
+        card = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, x, top, w, Inches(1.6))
+        card.fill.solid(); card.fill.fore_color.rgb = BG_PANEL
+        card.line.color.rgb = col; card.line.width = Pt(1.5); card.shadow.inherit = False
+        nx = slide.shapes.add_textbox(x, top + Inches(0.2), w, Inches(0.8))
+        np = nx.text_frame.paragraphs[0]; np.alignment = PP_ALIGN.CENTER
+        nr = np.add_run(); nr.text = num
+        nr.font.name = FONT_HEAD; nr.font.size = Pt(56); nr.font.bold = True; nr.font.color.rgb = col
+        lx = slide.shapes.add_textbox(x, top + Inches(1.05), w, Inches(0.5))
+        lp = lx.text_frame.paragraphs[0]; lp.alignment = PP_ALIGN.CENTER
+        lr = lp.add_run(); lr.text = label
+        lr.font.name = FONT_BODY; lr.font.size = Pt(14); lr.font.color.rgb = MUTED
+    # Multiply by scale
+    add_text(slide,
+             "Now multiply by 10,000 concurrent customers:\n"
+             "5,000,000 HTTP requests per hour just to track order statuses.\n"
+             "99% of them returned nothing useful.",
+             top=Inches(4.7), size=18, color=TEXT, align=PP_ALIGN.CENTER)
+    # Punch line
+    bx = slide.shapes.add_textbox(Inches(0.6), Inches(6.2), Inches(12.0), Inches(0.6))
+    bp = bx.text_frame.paragraphs[0]; bp.alignment = PP_ALIGN.CENTER
+    br = bp.add_run()
+    br.text = "Lower interval -> smoother UX, higher cost.    Raise interval -> cheaper, laggy.    You cannot win both."
+    br.font.name = FONT_HEAD; br.font.size = Pt(15); br.font.bold = True; br.font.italic = True; br.font.color.rgb = ACCENT
+    add_footer(slide, len(prs.slides.__iter__.__self__._sldIdLst))
+
+
+def slide_polling_when_right():
+    slide = add_blank_slide()
+    add_pattern_badge(slide, "POLLING", POLLING)
+    add_title(slide, "When polling IS the right call", top=Inches(1.15))
+    add_subtitle(slide, "It is fashionable to roll eyes at polling. Resist. Big companies use it for the right things.",
+                 top=Inches(1.95))
+    rows = [
+        ("Talking to an external API you don't control",
+         "OpenAI Batch / Fine-tuning, S3 Glacier, AWS Lambda async invokes - all polled because they don't push to you."),
+        ("The thing you're checking changes rarely",
+         "A nightly batch job. Polling every minute is 60 reqs; SSE would be overkill."),
+        ("Cost of being a few seconds stale is zero",
+         "A dashboard of yesterday's sales numbers. Nobody's watching it tick."),
+        ("You have very few clients",
+         "Internal admin tool used by 5 people. 500 polls/hour is rounding-noise."),
+        ("Platform / network kills long-lived connections",
+         "Corporate proxies, iOS background fetch, aggressive serverless idle timeouts."),
+        ("You're shipping in three days, alone",
+         "Polling is the only pattern you can build, test, deploy, and debug in an afternoon."),
+    ]
+    top = Inches(2.6); h = Inches(0.62); gap = Inches(0.08)
+    for i, (sym, fix) in enumerate(rows):
+        y = top + (h + gap) * i
+        card = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(0.6), y, Inches(12.13), h)
+        card.fill.solid(); card.fill.fore_color.rgb = BG_PANEL
+        card.line.color.rgb = POLLING; card.line.width = Pt(1.0); card.shadow.inherit = False
+        sx = slide.shapes.add_textbox(Inches(0.85), y + Inches(0.06), Inches(11.6), Inches(0.3))
+        sp = sx.text_frame.paragraphs[0]
+        sr = sp.add_run(); sr.text = sym
+        sr.font.name = FONT_HEAD; sr.font.size = Pt(13); sr.font.bold = True; sr.font.color.rgb = POLLING
+        fx = slide.shapes.add_textbox(Inches(0.85), y + Inches(0.34), Inches(11.6), Inches(0.3))
+        ff = fx.text_frame; ff.word_wrap = True
+        fp = ff.paragraphs[0]
+        fr = fp.add_run(); fr.text = fix
+        fr.font.name = FONT_BODY; fr.font.size = Pt(11); fr.font.color.rgb = TEXT
+    add_footer(slide, len(prs.slides.__iter__.__self__._sldIdLst))
+
+
+# ---- Webhook additions -----
+def slide_webhook_role_flip():
+    slide = add_blank_slide()
+    add_pattern_badge(slide, "WEBHOOK", WEBHOOK)
+    add_title(slide, "The role flip - webhooks are just inverted polling", top=Inches(1.15))
+    add_subtitle(slide, "Same HTTP. Same servers. Just swap who is the client and who is the server.",
+                 top=Inches(1.95))
+    # Two big panels comparing
+    panel_w = Inches(6.0); panel_h = Inches(3.6); top = Inches(2.6)
+    # POLLING
+    lx = Inches(0.6)
+    lcard = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, lx, top, panel_w, panel_h)
+    lcard.fill.solid(); lcard.fill.fore_color.rgb = BG_PANEL
+    lcard.line.color.rgb = POLLING; lcard.line.width = Pt(1.5); lcard.shadow.inherit = False
+    lh = slide.shapes.add_textbox(lx + Inches(0.25), top + Inches(0.2), panel_w - Inches(0.5), Inches(0.5))
+    lhr = lh.text_frame.paragraphs[0].add_run(); lhr.text = "POLLING"
+    lhr.font.name = FONT_HEAD; lhr.font.size = Pt(20); lhr.font.bold = True; lhr.font.color.rgb = POLLING
+    add_text(slide,
+             "YOU are the client.\n"
+             "THEY are the server.\n\n"
+             "You ASK them.\n"
+             "  GET /payments/recent\n\n"
+             "  GET /payments/recent\n"
+             "  GET /payments/recent\n"
+             "  GET /payments/recent\n"
+             "  GET ...",
+             left=lx + Inches(0.4), top=top + Inches(0.85),
+             width=panel_w - Inches(0.6), height=panel_h - Inches(1.0),
+             size=14, color=TEXT)
+    # WEBHOOK
+    rx = Inches(6.8)
+    rcard = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, rx, top, panel_w, panel_h)
+    rcard.fill.solid(); rcard.fill.fore_color.rgb = BG_PANEL
+    rcard.line.color.rgb = WEBHOOK; rcard.line.width = Pt(1.5); rcard.shadow.inherit = False
+    rh = slide.shapes.add_textbox(rx + Inches(0.25), top + Inches(0.2), panel_w - Inches(0.5), Inches(0.5))
+    rhr = rh.text_frame.paragraphs[0].add_run(); rhr.text = "WEBHOOK"
+    rhr.font.name = FONT_HEAD; rhr.font.size = Pt(20); rhr.font.bold = True; rhr.font.color.rgb = WEBHOOK
+    add_text(slide,
+             "THEY are the client.\n"
+             "YOU are the server.\n\n"
+             "They POST you (when it happens).\n"
+             "  POST /webhooks/stripe\n"
+             "  { type: payment.succeeded, ... }\n\n"
+             "  (silence ... silence ...)\n"
+             "  POST /webhooks/stripe",
+             left=rx + Inches(0.4), top=top + Inches(0.85),
+             width=panel_w - Inches(0.6), height=panel_h - Inches(1.0),
+             size=14, color=TEXT)
+    add_text(slide, "That role flip is the entire idea behind webhooks.",
+             top=Inches(6.45), size=15, color=ACCENT, bold=True, align=PP_ALIGN.CENTER)
+    add_footer(slide, len(prs.slides.__iter__.__self__._sldIdLst))
+
+
+def slide_webhook_payload():
+    slide = add_blank_slide()
+    add_pattern_badge(slide, "WEBHOOK", WEBHOOK)
+    add_title(slide, "Webhook payload anatomy", top=Inches(1.15))
+    add_subtitle(slide, "Stripe shape, but every provider follows the same outline.",
+                 top=Inches(1.95))
+    code_block(slide, """{
+  "id":          "evt_1NXY2bAB4tH...",        # unique event id - USE THIS FOR DEDUP
+  "type":        "payment_intent.succeeded",  # what happened - your switch statement
+  "created":     1700000000,                  # timestamp - useful for ordering
+  "data": {
+    "object": {                               # the resource at event-fire moment
+      "id":        "pi_3NXY...",
+      "amount":    5000,
+      "currency":  "usd",
+      "customer":  "cus_abc123",
+      "metadata":  { "order_id": "order_789" }
+    }
+  },
+  "livemode":    true,
+  "api_version": "2023-10-16"                 # sender's API version
+}""", top=Inches(2.5), height=Inches(4.0), size=12)
+    # Bottom callout
+    add_text(slide,
+             "Don't assume metadata fields you didn't set are present. Defensive parsing pays off.",
+             top=Inches(6.7), size=13, color=MUTED, align=PP_ALIGN.CENTER, bold=True)
+    add_footer(slide, len(prs.slides.__iter__.__self__._sldIdLst))
+
+
+def slide_webhook_receiver_code():
+    slide = add_blank_slide()
+    add_pattern_badge(slide, "WEBHOOK", WEBHOOK)
+    add_title(slide, "A production-shape Stripe receiver (FastAPI, 22 lines)", top=Inches(1.15))
+    add_subtitle(slide, "Verify, dedup, enqueue, return 200. Everything else happens in a worker.",
+                 top=Inches(1.95))
+    code_block(slide, """import hmac, hashlib, json, os
+from fastapi import FastAPI, Request, HTTPException
+
+app = FastAPI()
+SECRET = os.environ["STRIPE_WEBHOOK_SECRET"]
+seen = set()                                  # in prod: Redis SET with TTL
+
+def verify(body: bytes, header: str) -> bool:
+    parts  = dict(p.split("=", 1) for p in header.split(","))
+    signed = f"{parts['t']}.{body.decode()}".encode()
+    expect = hmac.new(SECRET.encode(), signed, hashlib.sha256).hexdigest()
+    return hmac.compare_digest(expect, parts["v1"])     # constant-time!
+
+@app.post("/webhooks/stripe")
+async def stripe_webhook(req: Request):
+    body = await req.body()                   # RAW bytes, not parsed JSON
+    if not verify(body, req.headers.get("stripe-signature", "")):
+        raise HTTPException(401, "bad signature")
+    event = json.loads(body)
+    if event["id"] in seen:                   # dedup BEFORE enqueue
+        return {"received": True, "duplicate": True}
+    seen.add(event["id"])
+    await queue.put(event)                    # the real work happens elsewhere
+    return {"received": True}""", top=Inches(2.5), height=Inches(4.4), size=11)
+    add_footer(slide, len(prs.slides.__iter__.__self__._sldIdLst))
+
+
+def slide_webhook_real_world():
+    slide = add_blank_slide()
+    add_pattern_badge(slide, "WEBHOOK", WEBHOOK)
+    add_title(slide, "Webhooks in the wild", top=Inches(1.15))
+    add_subtitle(slide, "Once you know to look, you see them everywhere.",
+                 top=Inches(1.95))
+    items = [
+        ("Stripe",      "payments, refunds, disputes, subscriptions"),
+        ("GitHub",      "pull requests, pushes, issues, deployments - powers every CI system"),
+        ("Slack Events API", "messages, channel events, reactions - how every chat bot works"),
+        ("Twilio",      "incoming SMS / call events / delivery status"),
+        ("Calendly / Cal.com", "meeting booked, cancelled, rescheduled"),
+        ("Shopify",     "orders, inventory updates, abandoned carts"),
+        ("Auth0 / Clerk / Supabase Auth", "user signed up, password changed, MFA enabled"),
+        ("OpenAI Batch API", "when a batch job finishes (newer services do this)"),
+        ("Your own service",  "any time customers ask 'can you POST when X happens?'"),
+    ]
+    top = Inches(2.55); h = Inches(0.46); gap = Inches(0.04)
+    for i, (name, what) in enumerate(items):
+        y = top + (h + gap) * i
+        card = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(0.6), y, Inches(12.13), h)
+        card.fill.solid(); card.fill.fore_color.rgb = BG_PANEL
+        card.line.color.rgb = BORDER; card.line.width = Pt(0.5); card.shadow.inherit = False
+        nx = slide.shapes.add_textbox(Inches(0.85), y + Inches(0.08), Inches(3.5), Inches(0.3))
+        nr = nx.text_frame.paragraphs[0].add_run(); nr.text = name
+        nr.font.name = FONT_HEAD; nr.font.size = Pt(13); nr.font.bold = True; nr.font.color.rgb = WEBHOOK
+        wx = slide.shapes.add_textbox(Inches(4.5), y + Inches(0.08), Inches(8.0), Inches(0.3))
+        wr = wx.text_frame.paragraphs[0].add_run(); wr.text = what
+        wr.font.name = FONT_BODY; wr.font.size = Pt(12); wr.font.color.rgb = TEXT
+    add_footer(slide, len(prs.slides.__iter__.__self__._sldIdLst))
+
+
+# ---- SSE additions -----
+def slide_sse_eventsource_api():
+    slide = add_blank_slide()
+    add_pattern_badge(slide, "SSE", SSE)
+    add_title(slide, "EventSource - the browser's SSE client", top=Inches(1.15))
+    add_subtitle(slide, "Three handlers, one close. The browser does parsing, reconnecting, Last-Event-ID.",
+                 top=Inches(1.95))
+    code_block(slide, """const es = new EventSource('/api/stream');
+
+es.onmessage = (e) => console.log('default event:', e.data);
+
+es.addEventListener('token', (e) => {                   // NAMED event
+  const { text } = JSON.parse(e.data);
+  appendToken(text);
+});
+
+es.onopen  = () => console.log('connected');
+es.onerror = () => console.log('error or reconnecting');
+
+es.close();   // otherwise it auto-reconnects forever
+""", top=Inches(2.5), height=Inches(2.6), size=13)
+    # Two cards: gives free / doesn't
+    top = Inches(5.25); w = Inches(6.0); gap = Inches(0.13)
+    for i, (head, color, items) in enumerate([
+        ("FREE from EventSource", SSE,
+         ["Auto-reconnect on dropped connection", "Last-Event-ID sent on reconnect", "Built into every modern browser"]),
+        ("NOT included", WEBHOOK,
+         ["Custom headers (no Authorization: Bearer ...)", "Binary frames (text only)", "Way to send data back (use fetch POST)"]),
+    ]):
+        x = Inches(0.6) + (w + gap) * i
+        card = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, x, top, w, Inches(1.7))
+        card.fill.solid(); card.fill.fore_color.rgb = BG_PANEL
+        card.line.color.rgb = color; card.line.width = Pt(1.2); card.shadow.inherit = False
+        hx = slide.shapes.add_textbox(x + Inches(0.2), top + Inches(0.1), w - Inches(0.4), Inches(0.35))
+        hr = hx.text_frame.paragraphs[0].add_run(); hr.text = head
+        hr.font.name = FONT_HEAD; hr.font.size = Pt(13); hr.font.bold = True; hr.font.color.rgb = color
+        for j, it in enumerate(items):
+            ix = slide.shapes.add_textbox(x + Inches(0.2), top + Inches(0.45) + Inches(0.35) * j,
+                                          w - Inches(0.4), Inches(0.3))
+            ip = ix.text_frame.paragraphs[0]
+            ir = ip.add_run(); ir.text = "·  " + it
+            ir.font.name = FONT_BODY; ir.font.size = Pt(12); ir.font.color.rgb = TEXT
+    add_footer(slide, len(prs.slides.__iter__.__self__._sldIdLst))
+
+
+def slide_sse_server_code():
+    slide = add_blank_slide()
+    add_pattern_badge(slide, "SSE", SSE)
+    add_title(slide, "Minimal SSE endpoint (FastAPI)", top=Inches(1.15))
+    add_subtitle(slide, "A generator yields events. StreamingResponse pipes them out.",
+                 top=Inches(1.95))
+    code_block(slide, """from fastapi import FastAPI
+from fastapi.responses import StreamingResponse
+import asyncio
+
+app = FastAPI()
+
+@app.get("/stream")
+async def stream():
+    async def gen():
+        for i in range(10):
+            yield f"data: chunk {i}\\n\\n"      # double-\\n ends each event
+            await asyncio.sleep(1)
+        yield "event: done\\ndata: complete\\n\\n"
+
+    return StreamingResponse(gen(), media_type="text/event-stream", headers={
+        "Cache-Control":     "no-cache, no-transform",
+        "X-Accel-Buffering": "no",              # disable nginx buffering
+    })""", top=Inches(2.5), height=Inches(4.4), size=13)
+    add_footer(slide, len(prs.slides.__iter__.__self__._sldIdLst))
+
+
+def slide_sse_must_should():
+    slide = add_blank_slide()
+    add_pattern_badge(slide, "SSE", SSE)
+    add_title(slide, "Three MUSTs and three SHOULDs for an SSE server", top=Inches(1.15))
+    add_subtitle(slide, "Get these right and your SSE endpoint behaves the same in dev and prod.",
+                 top=Inches(1.95))
+    musts = [
+        ("Set Content-Type: text/event-stream",
+         "How the browser knows to keep the connection open and parse the body as events."),
+        ("End every event with \\n\\n",
+         "Blank line tells the client 'this event is complete'. Forget it and the client waits forever."),
+        ("Disable proxy buffering",
+         "X-Accel-Buffering: no for nginx; check LB docs for others. Without this, your stream batches at the proxy."),
+    ]
+    shoulds = [
+        ("Send keep-alives",
+         "Every 15-30s send ': ping\\n\\n'. Stops proxies/LB from dropping the idle line."),
+        ("Cache-Control: no-cache, no-transform",
+         "Stops any layer from caching the response."),
+        ("Don't gzip the stream",
+         "Compression buffers bytes to compress efficiently. Defeats streaming."),
+    ]
+    # Two columns
+    panel_w = Inches(6.0); panel_h = Inches(4.5); top = Inches(2.55)
+    for col_i, (head, color, items) in enumerate([
+        ("MUST", SSE, musts),
+        ("SHOULD", ACCENT, shoulds),
+    ]):
+        x = Inches(0.6) + (panel_w + Inches(0.13)) * col_i
+        card = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, x, top, panel_w, panel_h)
+        card.fill.solid(); card.fill.fore_color.rgb = BG_PANEL
+        card.line.color.rgb = color; card.line.width = Pt(1.5); card.shadow.inherit = False
+        hx = slide.shapes.add_textbox(x + Inches(0.25), top + Inches(0.2), panel_w - Inches(0.5), Inches(0.45))
+        hr = hx.text_frame.paragraphs[0].add_run(); hr.text = head
+        hr.font.name = FONT_HEAD; hr.font.size = Pt(20); hr.font.bold = True; hr.font.color.rgb = color
+        for j, (h2, body) in enumerate(items):
+            y = top + Inches(0.8) + Inches(1.2) * j
+            hx2 = slide.shapes.add_textbox(x + Inches(0.3), y, panel_w - Inches(0.5), Inches(0.35))
+            hr2 = hx2.text_frame.paragraphs[0].add_run(); hr2.text = h2
+            hr2.font.name = FONT_HEAD; hr2.font.size = Pt(13); hr2.font.bold = True; hr2.font.color.rgb = TEXT
+            bx = slide.shapes.add_textbox(x + Inches(0.3), y + Inches(0.35), panel_w - Inches(0.5), Inches(0.7))
+            bf = bx.text_frame; bf.word_wrap = True
+            br = bf.paragraphs[0].add_run(); br.text = body
+            br.font.name = FONT_BODY; br.font.size = Pt(11); br.font.color.rgb = MUTED
+    add_footer(slide, len(prs.slides.__iter__.__self__._sldIdLst))
+
+
+def slide_sse_cost_picture():
+    slide = add_blank_slide()
+    add_pattern_badge(slide, "SSE", SSE)
+    add_title(slide, "Maya picks SSE: who pays what", top=Inches(1.15))
+    add_subtitle(slide, "Same 'track my order' feature. Numbers at 10K concurrent customers.",
+                 top=Inches(1.95))
+    # 4-row comparison
+    rows = [
+        ("Latency",         "0-3 seconds (poll gap)",      "near zero (push)"),
+        ("Idle requests",   "10K every 3s = 3,300/sec",     "0 - heartbeat ping every 20s"),
+        ("Server CPU",      "high - lots of work to say nothing", "low"),
+        ("Memory",          "tiny - stateless",             "~1 GB at 10K (50-100 KB / open conn)"),
+        ("User experience", "feels laggy on status changes", "instant"),
+    ]
+    headers = ("METRIC", "POLLING (every 3s)", "SSE")
+    col_w = [Inches(3.2), Inches(4.8), Inches(4.1)]
+    top = Inches(2.6); row_h = Inches(0.65)
+    x = Inches(0.6)
+    for i, h in enumerate(headers):
+        hx = slide.shapes.add_textbox(x, top, col_w[i], Inches(0.4))
+        hr = hx.text_frame.paragraphs[0].add_run(); hr.text = h
+        hr.font.name = FONT_HEAD; hr.font.size = Pt(13); hr.font.bold = True
+        hr.font.color.rgb = ACCENT if i == 0 else (POLLING if i == 1 else SSE)
+        x += col_w[i]
+    for ri, row in enumerate(rows):
+        y = top + Inches(0.5) + row_h * ri
+        x = Inches(0.6)
+        for ci, cell in enumerate(row):
+            tx = slide.shapes.add_textbox(x, y, col_w[ci], row_h - Inches(0.1))
+            tf = tx.text_frame; tf.word_wrap = True
+            tp = tf.paragraphs[0]
+            tr = tp.add_run(); tr.text = cell
+            tr.font.name = FONT_BODY; tr.font.size = Pt(13); tr.font.color.rgb = TEXT
+            if ci == 0:
+                tr.font.bold = True; tr.font.color.rgb = MUTED
+            x += col_w[ci]
+    add_text(slide,
+             "10K open connections is the SSE sweet spot. Past 100K, plan for a pub-sub backbone.",
+             top=Inches(6.6), size=13, color=ACCENT, bold=True, align=PP_ALIGN.CENTER)
+    add_footer(slide, len(prs.slides.__iter__.__self__._sldIdLst))
+
+
+# ---- WebSocket additions -----
+def slide_ws_handshake_wire():
+    slide = add_blank_slide()
+    add_pattern_badge(slide, "WEBSOCKET", WS)
+    add_title(slide, "The handshake on the wire", top=Inches(1.15))
+    add_subtitle(slide, "Starts as HTTP. After 101 Switching Protocols, HTTP is gone - frames take over.",
+                 top=Inches(1.95))
+    panel_w = Inches(6.0); panel_h = Inches(3.6); top = Inches(2.55)
+    # Request
+    lx = Inches(0.6)
+    lcard = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, lx, top, panel_w, panel_h)
+    lcard.fill.solid(); lcard.fill.fore_color.rgb = BG_PANEL
+    lcard.line.color.rgb = WS; lcard.line.width = Pt(1.0); lcard.shadow.inherit = False
+    lh = slide.shapes.add_textbox(lx + Inches(0.25), top + Inches(0.15), panel_w - Inches(0.5), Inches(0.4))
+    lhr = lh.text_frame.paragraphs[0].add_run(); lhr.text = "Client REQUEST"
+    lhr.font.name = FONT_HEAD; lhr.font.size = Pt(13); lhr.font.bold = True; lhr.font.color.rgb = WS
+    req = """GET /chat HTTP/1.1
+Host: api.liveorder.app
+Upgrade: websocket
+Connection: Upgrade
+Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==
+Sec-WebSocket-Version: 13"""
+    tx = slide.shapes.add_textbox(lx + Inches(0.25), top + Inches(0.65), panel_w - Inches(0.5), panel_h - Inches(0.9))
+    tf = tx.text_frame
+    for i, line in enumerate(req.split("\n")):
+        p = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
+        r = p.add_run(); r.text = line if line else " "
+        r.font.name = FONT_CODE; r.font.size = Pt(12); r.font.color.rgb = TEXT
+    # Response
+    rx = Inches(6.8)
+    rcard = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, rx, top, panel_w, panel_h)
+    rcard.fill.solid(); rcard.fill.fore_color.rgb = BG_PANEL
+    rcard.line.color.rgb = SSE; rcard.line.width = Pt(1.0); rcard.shadow.inherit = False
+    rh = slide.shapes.add_textbox(rx + Inches(0.25), top + Inches(0.15), panel_w - Inches(0.5), Inches(0.4))
+    rhr = rh.text_frame.paragraphs[0].add_run(); rhr.text = "Server RESPONSE"
+    rhr.font.name = FONT_HEAD; rhr.font.size = Pt(13); rhr.font.bold = True; rhr.font.color.rgb = SSE
+    res = """HTTP/1.1 101 Switching Protocols
+Upgrade: websocket
+Connection: Upgrade
+Sec-WebSocket-Accept: s3pPLMBiTxaQ9kYGzzhZRbK+xOo=
+
+[after this point: WebSocket frames,
+ no more HTTP messages on this TCP socket]"""
+    tx = slide.shapes.add_textbox(rx + Inches(0.25), top + Inches(0.65), panel_w - Inches(0.5), panel_h - Inches(0.9))
+    tf = tx.text_frame
+    for i, line in enumerate(res.split("\n")):
+        p = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
+        r = p.add_run(); r.text = line if line else " "
+        r.font.name = FONT_CODE; r.font.size = Pt(12); r.font.color.rgb = TEXT
+    add_text(slide,
+             "Why the dance? Ports 80/443 are open everywhere; brand-new protocols on new ports get blocked.\nDress as HTTP, sneak through middleboxes, then upgrade.",
+             top=Inches(6.4), size=12, color=MUTED, align=PP_ALIGN.CENTER)
+    add_footer(slide, len(prs.slides.__iter__.__self__._sldIdLst))
+
+
+def slide_ws_frames():
+    slide = add_blank_slide()
+    add_pattern_badge(slide, "WEBSOCKET", WS)
+    add_title(slide, "WebSocket frames - the unit of communication", top=Inches(1.15))
+    add_subtitle(slide, "Five frame types. Libraries handle framing for you, but knowing helps debugging.",
+                 top=Inches(1.95))
+    rows = [
+        ("Text",   "UTF-8 string. Most chat apps use these with JSON inside.",   WS),
+        ("Binary", "arbitrary bytes. Audio, images, protobuf, msgpack.",         LLM),
+        ("Ping",   "heartbeat. Library usually auto-replies with a Pong.",       ACCENT),
+        ("Pong",   "reply to a Ping. Used to detect dead-but-not-yet-closed connections.", ACCENT),
+        ("Close",  "graceful shutdown with status code (1000 normal, 1006 abnormal, 1011 server error).", WEBHOOK),
+    ]
+    top = Inches(2.55); h = Inches(0.7); gap = Inches(0.1)
+    for i, (name, body, color) in enumerate(rows):
+        y = top + (h + gap) * i
+        card = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(0.6), y, Inches(12.13), h)
+        card.fill.solid(); card.fill.fore_color.rgb = BG_PANEL
+        card.line.color.rgb = color; card.line.width = Pt(1.0); card.shadow.inherit = False
+        nx = slide.shapes.add_textbox(Inches(0.85), y + Inches(0.2), Inches(1.8), Inches(0.4))
+        nr = nx.text_frame.paragraphs[0].add_run(); nr.text = name
+        nr.font.name = FONT_HEAD; nr.font.size = Pt(15); nr.font.bold = True; nr.font.color.rgb = color
+        bx = slide.shapes.add_textbox(Inches(2.8), y + Inches(0.2), Inches(9.6), Inches(0.4))
+        bf = bx.text_frame; bf.word_wrap = True
+        br = bf.paragraphs[0].add_run(); br.text = body
+        br.font.name = FONT_BODY; br.font.size = Pt(13); br.font.color.rgb = TEXT
+    add_text(slide,
+             "Each frame has: opcode + payload length + (client) mask key + payload bytes. Up to 2^63 bytes per message.",
+             top=Inches(6.7), size=12, color=MUTED, align=PP_ALIGN.CENTER)
+    add_footer(slide, len(prs.slides.__iter__.__self__._sldIdLst))
+
+
+def slide_ws_reconnecting():
+    slide = add_blank_slide()
+    add_pattern_badge(slide, "WEBSOCKET", WS)
+    add_title(slide, "You WILL write ReconnectingWS", top=Inches(1.15))
+    add_subtitle(slide, "Unlike EventSource, the WebSocket API gives you nothing for free. Here's the minimum.",
+                 top=Inches(1.95))
+    code_block(slide, """class ReconnectingWS {
+  constructor(url) {
+    this.url = url;
+    this.backoff = 1000;            // start at 1s
+    this.maxBackoff = 30000;
+    this.connect();
+  }
+  connect() {
+    this.ws = new WebSocket(this.url);
+    this.ws.onopen    = () => { this.backoff = 1000; this.onopen?.(); };       // reset on success
+    this.ws.onmessage = (e) => this.onmessage?.(e);
+    this.ws.onclose   = () => {
+      setTimeout(() => this.connect(), this.backoff + Math.random() * 500);    // + JITTER
+      this.backoff = Math.min(this.backoff * 2, this.maxBackoff);              // exponential
+    };
+    this.ws.onerror   = () => this.ws.close();   // trigger onclose path
+  }
+  send(msg) {
+    if (this.ws.readyState === WebSocket.OPEN) this.ws.send(msg);
+    else this.queue.push(msg);      // optional: buffer until reconnect
+  }
+}""", top=Inches(2.5), height=Inches(4.4), size=11)
+    add_footer(slide, len(prs.slides.__iter__.__self__._sldIdLst))
+
+
+def slide_ws_chat_protocol():
+    slide = add_blank_slide()
+    add_pattern_badge(slide, "WEBSOCKET", WS)
+    add_title(slide, "The chat-protocol convention - type + envelope", top=Inches(1.15))
+    add_subtitle(slide, "Most production WS apps use a tiny JSON envelope with a 'type' field both sides agree on.",
+                 top=Inches(1.95))
+    panel_w = Inches(6.0); panel_h = Inches(4.3); top = Inches(2.5)
+    # CLIENT -> SERVER
+    lx = Inches(0.6)
+    lcard = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, lx, top, panel_w, panel_h)
+    lcard.fill.solid(); lcard.fill.fore_color.rgb = BG_PANEL
+    lcard.line.color.rgb = WS; lcard.line.width = Pt(1.0); lcard.shadow.inherit = False
+    lh = slide.shapes.add_textbox(lx + Inches(0.25), top + Inches(0.15), panel_w - Inches(0.5), Inches(0.4))
+    lhr = lh.text_frame.paragraphs[0].add_run(); lhr.text = "CLIENT  ->  SERVER"
+    lhr.font.name = FONT_HEAD; lhr.font.size = Pt(13); lhr.font.bold = True; lhr.font.color.rgb = WS
+    c2s = """{ "type": "join",   "order_id": 123 }
+
+{ "type": "msg",    "text": "I'm in 5C, buzzer broken" }
+
+{ "type": "typing", "is_typing": true }
+
+{ "type": "ping" }                       # heartbeat
+"""
+    tx = slide.shapes.add_textbox(lx + Inches(0.25), top + Inches(0.65), panel_w - Inches(0.5), panel_h - Inches(0.9))
+    tf = tx.text_frame
+    for i, line in enumerate(c2s.split("\n")):
+        p = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
+        r = p.add_run(); r.text = line if line else " "
+        r.font.name = FONT_CODE; r.font.size = Pt(11); r.font.color.rgb = TEXT
+    # SERVER -> CLIENT
+    rx = Inches(6.8)
+    rcard = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, rx, top, panel_w, panel_h)
+    rcard.fill.solid(); rcard.fill.fore_color.rgb = BG_PANEL
+    rcard.line.color.rgb = SSE; rcard.line.width = Pt(1.0); rcard.shadow.inherit = False
+    rh = slide.shapes.add_textbox(rx + Inches(0.25), top + Inches(0.15), panel_w - Inches(0.5), Inches(0.4))
+    rhr = rh.text_frame.paragraphs[0].add_run(); rhr.text = "SERVER  ->  CLIENT"
+    rhr.font.name = FONT_HEAD; rhr.font.size = Pt(13); rhr.font.bold = True; rhr.font.color.rgb = SSE
+    s2c = """{ "type": "history",  "messages": [...] }     # on join
+
+{ "type": "msg",      "from": "raj", "text": "...", "ts": 1700000000 }
+
+{ "type": "typing",   "from": "raj", "is_typing": true }
+
+{ "type": "presence", "user": "sam", "online": true }
+
+{ "type": "pong" }                       # heartbeat reply
+"""
+    tx = slide.shapes.add_textbox(rx + Inches(0.25), top + Inches(0.65), panel_w - Inches(0.5), panel_h - Inches(0.9))
+    tf = tx.text_frame
+    for i, line in enumerate(s2c.split("\n")):
+        p = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
+        r = p.add_run(); r.text = line if line else " "
+        r.font.name = FONT_CODE; r.font.size = Pt(10); r.font.color.rgb = TEXT
+    add_text(slide,
+             "Receiver dispatches on type. Same shape powers Slack, Discord, Linear, Figma comments, etc.",
+             top=Inches(6.95), size=12, color=MUTED, align=PP_ALIGN.CENTER, bold=True)
+    add_footer(slide, len(prs.slides.__iter__.__self__._sldIdLst))
+
+
+def slide_ws_pubsub_cross_server():
+    slide = add_blank_slide()
+    add_pattern_badge(slide, "WEBSOCKET", WS)
+    add_title(slide, "Past 1 process: pub-sub or nothing reaches across servers", top=Inches(1.15))
+    add_subtitle(slide, "Sam connects to server-A; Raj to server-B. How does Raj's message reach Sam?",
+                 top=Inches(1.95))
+    # Diagram with native shapes
+    # Three boxes: server-A, Redis, server-B, with Sam/Raj attached
+    # Simpler: render flow
+    diag_top = Inches(2.6)
+    # Sam left
+    sam = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(0.8), diag_top, Inches(2.0), Inches(0.7))
+    sam.fill.solid(); sam.fill.fore_color.rgb = BG_PANEL; sam.line.color.rgb = WS; sam.line.width = Pt(1.0); sam.shadow.inherit = False
+    sx = slide.shapes.add_textbox(Inches(0.8), diag_top + Inches(0.15), Inches(2.0), Inches(0.4))
+    sp = sx.text_frame.paragraphs[0]; sp.alignment = PP_ALIGN.CENTER
+    sr = sp.add_run(); sr.text = "Sam's phone"
+    sr.font.name = FONT_HEAD; sr.font.size = Pt(13); sr.font.bold = True; sr.font.color.rgb = WS
+    # Server A
+    sa = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(3.5), diag_top, Inches(2.5), Inches(0.7))
+    sa.fill.solid(); sa.fill.fore_color.rgb = BG_PANEL; sa.line.color.rgb = SSE; sa.line.width = Pt(1.0); sa.shadow.inherit = False
+    sax = slide.shapes.add_textbox(Inches(3.5), diag_top + Inches(0.15), Inches(2.5), Inches(0.4))
+    sap = sax.text_frame.paragraphs[0]; sap.alignment = PP_ALIGN.CENTER
+    sar = sap.add_run(); sar.text = "WS server A"
+    sar.font.name = FONT_HEAD; sar.font.size = Pt(13); sar.font.bold = True; sar.font.color.rgb = SSE
+    # Redis center
+    red = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(6.4), Inches(3.6), Inches(2.5), Inches(0.7))
+    red.fill.solid(); red.fill.fore_color.rgb = BG_PANEL; red.line.color.rgb = WEBHOOK; red.line.width = Pt(1.5); red.shadow.inherit = False
+    rdx = slide.shapes.add_textbox(Inches(6.4), Inches(3.75), Inches(2.5), Inches(0.4))
+    rdp = rdx.text_frame.paragraphs[0]; rdp.alignment = PP_ALIGN.CENTER
+    rdr = rdp.add_run(); rdr.text = "Redis pub-sub"
+    rdr.font.name = FONT_HEAD; rdr.font.size = Pt(13); rdr.font.bold = True; rdr.font.color.rgb = WEBHOOK
+    # Server B
+    sb = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(9.3), diag_top + Inches(2.0), Inches(2.5), Inches(0.7))
+    sb.fill.solid(); sb.fill.fore_color.rgb = BG_PANEL; sb.line.color.rgb = SSE; sb.line.width = Pt(1.0); sb.shadow.inherit = False
+    sbx = slide.shapes.add_textbox(Inches(9.3), diag_top + Inches(2.15), Inches(2.5), Inches(0.4))
+    sbp = sbx.text_frame.paragraphs[0]; sbp.alignment = PP_ALIGN.CENTER
+    sbr = sbp.add_run(); sbr.text = "WS server B"
+    sbr.font.name = FONT_HEAD; sbr.font.size = Pt(13); sbr.font.bold = True; sbr.font.color.rgb = SSE
+    # Raj far right
+    raj = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(11.9), diag_top + Inches(2.0), Inches(1.3), Inches(0.7))
+    raj.fill.solid(); raj.fill.fore_color.rgb = BG_PANEL; raj.line.color.rgb = WS; raj.line.width = Pt(1.0); raj.shadow.inherit = False
+    rajx = slide.shapes.add_textbox(Inches(11.9), diag_top + Inches(2.15), Inches(1.3), Inches(0.4))
+    rajp = rajx.text_frame.paragraphs[0]; rajp.alignment = PP_ALIGN.CENTER
+    rajr = rajp.add_run(); rajr.text = "Raj"
+    rajr.font.name = FONT_HEAD; rajr.font.size = Pt(13); rajr.font.bold = True; rajr.font.color.rgb = WS
+    # Step list
+    steps = (
+        "1. Raj's message arrives at server B  (Raj's chat WS lives there)\n"
+        "2. Server B publishes to Redis channel chat:order:123\n"
+        "3. Server A is subscribed - it receives the published message\n"
+        "4. Server A forwards it down Sam's open WS  ->  Sam sees the message"
+    )
+    add_text(slide, steps, top=Inches(5.5), size=14, color=TEXT)
+    add_footer(slide, len(prs.slides.__iter__.__self__._sldIdLst))
+
+
+# ---- Decision matrix additions -----
+def slide_cost_ranking():
+    slide = add_blank_slide()
+    add_pattern_badge(slide, "DECIDE", LLM)
+    add_title(slide, "Cost ranking - cheapest to most expensive per client", top=Inches(1.15))
+    add_subtitle(slide, "Runtime cost only. Engineering cost roughly tracks it too.",
+                 top=Inches(1.95))
+    rows = [
+        ("1.", "Webhook receiver",  WEBHOOK,
+         "Zero idle cost. Server only does work when events fire. Scales for free when nothing's happening."),
+        ("2.", "Short polling",     POLLING,
+         "N reqs/min/client. Each is cheap and stateless. Cost grows linearly with clients x rate."),
+        ("3.", "Long polling",      POLLING,
+         "One held connection per client, no CPU until data arrives. Memory similar to SSE."),
+        ("4.", "SSE",               SSE,
+         "One held connection per client. Push cost when events fire. Tiny heartbeat overhead."),
+        ("5.", "WebSocket",         WS,
+         "SSE cost plus framing buffers + send queues + app-level reconnect/heartbeat state + pub-sub fanout."),
+    ]
+    top = Inches(2.55); h = Inches(0.75); gap = Inches(0.1)
+    for i, (rank, name, color, body) in enumerate(rows):
+        y = top + (h + gap) * i
+        card = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(0.6), y, Inches(12.13), h)
+        card.fill.solid(); card.fill.fore_color.rgb = BG_PANEL
+        card.line.color.rgb = color; card.line.width = Pt(1.0); card.shadow.inherit = False
+        rx = slide.shapes.add_textbox(Inches(0.85), y + Inches(0.18), Inches(0.6), Inches(0.4))
+        rr = rx.text_frame.paragraphs[0].add_run(); rr.text = rank
+        rr.font.name = FONT_HEAD; rr.font.size = Pt(20); rr.font.bold = True; rr.font.color.rgb = color
+        nx = slide.shapes.add_textbox(Inches(1.5), y + Inches(0.18), Inches(3.0), Inches(0.4))
+        nr = nx.text_frame.paragraphs[0].add_run(); nr.text = name
+        nr.font.name = FONT_HEAD; nr.font.size = Pt(16); nr.font.bold = True; nr.font.color.rgb = color
+        bx = slide.shapes.add_textbox(Inches(4.7), y + Inches(0.18), Inches(7.7), Inches(0.5))
+        bf = bx.text_frame; bf.word_wrap = True
+        br = bf.paragraphs[0].add_run(); br.text = body
+        br.font.name = FONT_BODY; br.font.size = Pt(12); br.font.color.rgb = TEXT
+    add_footer(slide, len(prs.slides.__iter__.__self__._sldIdLst))
+
+
+def slide_recipes_extended():
+    slide = add_blank_slide()
+    add_pattern_badge(slide, "DECIDE", LLM)
+    add_title(slide, "'I'm building X' - 15 quick recipes", top=Inches(1.15))
+    add_subtitle(slide, "Most common AI / web scenarios mapped to the right pattern.",
+                 top=Inches(1.95))
+    items = [
+        ("ChatGPT-style typewriter response",            "SSE",       SSE),
+        ("Slack-style team chat",                        "WebSocket", WS),
+        ("Stripe payment confirmation",                  "Webhook",   WEBHOOK),
+        ("Vercel-style live deploy logs",                "SSE",       SSE),
+        ("Multiplayer browser game",                     "WebSocket", WS),
+        ("Voice agent (audio in + audio out)",           "WebSocket", WS),
+        ("GitHub PR opened -> trigger CI/agent",         "Webhook",   WEBHOOK),
+        ("'Is my batch job done yet?'",                  "Polling",   POLLING),
+        ("Real-time stock ticker",                       "SSE",       SSE),
+        ("Google-Docs-style collaborative editing",      "WebSocket", WS),
+        ("MCP server you're building",                   "SSE / Streamable HTTP", SSE),
+        ("Push to a mobile app while it's CLOSED",       "APNs / FCM (not us)", DIM),
+        ("File upload progress in one HTTP request",     "fetch streaming (not us)", DIM),
+        ("Internal service-to-service event trigger",    "Webhook",   WEBHOOK),
+        ("Figma-style live cursors",                     "WebSocket", WS),
+    ]
+    # Two columns
+    top = Inches(2.55); col_w = Inches(6.05); row_h = Inches(0.4); gap = Inches(0.05)
+    for i, (scen, pat, color) in enumerate(items):
+        col = i % 2
+        row = i // 2
+        x = Inches(0.6) + (col_w + Inches(0.13)) * col
+        y = top + (row_h + gap) * row
+        card = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, x, y, col_w, row_h)
+        card.fill.solid(); card.fill.fore_color.rgb = BG_PANEL
+        card.line.color.rgb = BORDER; card.line.width = Pt(0.5); card.shadow.inherit = False
+        sx = slide.shapes.add_textbox(x + Inches(0.15), y + Inches(0.05), col_w - Inches(2.0), row_h - Inches(0.1))
+        sp = sx.text_frame.paragraphs[0]
+        sr = sp.add_run(); sr.text = scen
+        sr.font.name = FONT_BODY; sr.font.size = Pt(11); sr.font.color.rgb = TEXT
+        px = slide.shapes.add_textbox(x + col_w - Inches(2.05), y + Inches(0.05), Inches(2.0) - Inches(0.15), row_h - Inches(0.1))
+        pp = px.text_frame.paragraphs[0]; pp.alignment = PP_ALIGN.RIGHT
+        pr = pp.add_run(); pr.text = pat
+        pr.font.name = FONT_HEAD; pr.font.size = Pt(11); pr.font.bold = True; pr.font.color.rgb = color
+    add_footer(slide, len(prs.slides.__iter__.__self__._sldIdLst))
+
+
+def slide_scale_tiers():
+    slide = add_blank_slide()
+    add_pattern_badge(slide, "DECIDE", LLM)
+    add_title(slide, "What changes at scale - by tier", top=Inches(1.15))
+    add_subtitle(slide, "Same patterns. Different infrastructure decisions at each tier.",
+                 top=Inches(1.95))
+    rows = [
+        ("Up to 100 concurrent",
+         "Anything works. Single server. Pick by ergonomics."),
+        ("100 - 10K",
+         "Async I/O. ulimit -n 65535. Heartbeats. LB idle timeout 60-300s. Monitor connection counts."),
+        ("10K - 100K",
+         "Multiple processes. Pub-sub backbone (Redis / NATS / Kafka). Sticky LB sessions. Connection metrics & slow-consumer detection."),
+        ("100K - 1M",
+         "Specialised tools - Phoenix Channels, Centrifugo, Ably, Pusher, PartyKit. Kernel tuning. Separate gateway tier. Edge delivery."),
+        ("Over 1M",
+         "Past blog-post territory. Specialised infrastructure built by teams who think about this all day. Hire someone who's done it."),
+    ]
+    top = Inches(2.55); h = Inches(0.85); gap = Inches(0.1)
+    for i, (tier, body) in enumerate(rows):
+        y = top + (h + gap) * i
+        card = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(0.6), y, Inches(12.13), h)
+        card.fill.solid(); card.fill.fore_color.rgb = BG_PANEL
+        card.line.color.rgb = BORDER; card.line.width = Pt(0.5); card.shadow.inherit = False
+        tx = slide.shapes.add_textbox(Inches(0.85), y + Inches(0.15), Inches(3.5), Inches(0.4))
+        tr = tx.text_frame.paragraphs[0].add_run(); tr.text = tier
+        tr.font.name = FONT_HEAD; tr.font.size = Pt(15); tr.font.bold = True; tr.font.color.rgb = ACCENT
+        bx = slide.shapes.add_textbox(Inches(0.85), y + Inches(0.5), Inches(11.6), Inches(0.4))
+        bf = bx.text_frame; bf.word_wrap = True
+        br = bf.paragraphs[0].add_run(); br.text = body
+        br.font.name = FONT_BODY; br.font.size = Pt(12); br.font.color.rgb = TEXT
+    add_footer(slide, len(prs.slides.__iter__.__self__._sldIdLst))
+
+
+# ---- AI / MCP additions -----
+def slide_ai_why_different():
+    slide = add_blank_slide()
+    add_pattern_badge(slide, "AI SCENARIO", LLM)
+    add_title(slide, "Why AI apps push every pattern decision harder", top=Inches(1.15))
+    add_subtitle(slide, "Three forces that make these choices matter more in AI than in CRUD apps.",
+                 top=Inches(1.95))
+    items = [
+        ("LLM output is naturally a stream",
+         "Static REST feels broken once you've seen ChatGPT type. Batch responses feel laggy even when they're objectively fast."),
+        ("Tools can take seconds to minutes",
+         "Agent runs web search (5s), reads 3 docs (15s), summarises (10s), writes report (30s). The user is staring at a screen the whole time."),
+        ("Agents are increasingly triggered by external events",
+         "GitHub fires -> agent reviews PR. Stripe fires -> agent processes refund. Slack fires -> agent answers. That's webhooks. Lots of webhooks."),
+    ]
+    top = Inches(2.7); h = Inches(1.2); gap = Inches(0.15)
+    for i, (head, body) in enumerate(items):
+        y = top + (h + gap) * i
+        card = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(0.6), y, Inches(12.13), h)
+        card.fill.solid(); card.fill.fore_color.rgb = BG_PANEL
+        card.line.color.rgb = LLM; card.line.width = Pt(1.5); card.shadow.inherit = False
+        nx = slide.shapes.add_textbox(Inches(0.85), y + Inches(0.18), Inches(0.7), Inches(0.5))
+        np = nx.text_frame.paragraphs[0]
+        nr = np.add_run(); nr.text = str(i + 1)
+        nr.font.name = FONT_HEAD; nr.font.size = Pt(28); nr.font.bold = True; nr.font.color.rgb = LLM
+        hx = slide.shapes.add_textbox(Inches(1.7), y + Inches(0.18), Inches(10.7), Inches(0.4))
+        hr = hx.text_frame.paragraphs[0].add_run(); hr.text = head
+        hr.font.name = FONT_HEAD; hr.font.size = Pt(15); hr.font.bold = True; hr.font.color.rgb = TEXT
+        bx = slide.shapes.add_textbox(Inches(1.7), y + Inches(0.6), Inches(10.7), Inches(0.55))
+        bf = bx.text_frame; bf.word_wrap = True
+        br = bf.paragraphs[0].add_run(); br.text = body
+        br.font.name = FONT_BODY; br.font.size = Pt(13); br.font.color.rgb = MUTED
+    add_footer(slide, len(prs.slides.__iter__.__self__._sldIdLst))
+
+
+def slide_mcp_transports():
+    slide = add_blank_slide()
+    add_pattern_badge(slide, "AI SCENARIO", LLM)
+    add_title(slide, "MCP transports - three flavours, all SSE-shaped at the top", top=Inches(1.15))
+    add_subtitle(slide, "Model Context Protocol = how Claude Desktop / Cursor talk to your tool servers.",
+                 top=Inches(1.95))
+    rows = [
+        ("stdio",
+         "local",
+         "Server is a local process. Messages flow over stdin/stdout. Used for filesystem, git, sqlite tools. Not really a network pattern."),
+        ("HTTP + SSE  (older design)",
+         "remote, 2 endpoints",
+         "Client opens an SSE stream for server-to-client. Client sends via a separate HTTP POST. Two endpoints glued together."),
+        ("Streamable HTTP  (current standard)",
+         "remote, 1 endpoint",
+         "Single endpoint. The response body is itself an SSE stream. Bidirectional via paired POSTs and SSE responses. Still SSE-shaped underneath."),
+    ]
+    top = Inches(2.55); h = Inches(1.15); gap = Inches(0.13)
+    for i, (name, tag, body) in enumerate(rows):
+        y = top + (h + gap) * i
+        card = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(0.6), y, Inches(12.13), h)
+        card.fill.solid(); card.fill.fore_color.rgb = BG_PANEL
+        card.line.color.rgb = LLM; card.line.width = Pt(1.0); card.shadow.inherit = False
+        nx = slide.shapes.add_textbox(Inches(0.85), y + Inches(0.15), Inches(8.0), Inches(0.4))
+        nr = nx.text_frame.paragraphs[0].add_run(); nr.text = name
+        nr.font.name = FONT_HEAD; nr.font.size = Pt(15); nr.font.bold = True; nr.font.color.rgb = LLM
+        tgx = slide.shapes.add_textbox(Inches(8.8), y + Inches(0.18), Inches(3.8), Inches(0.3))
+        tgp = tgx.text_frame.paragraphs[0]; tgp.alignment = PP_ALIGN.RIGHT
+        tgr = tgp.add_run(); tgr.text = tag
+        tgr.font.name = FONT_HEAD; tgr.font.size = Pt(11); tgr.font.italic = True; tgr.font.color.rgb = MUTED
+        bx = slide.shapes.add_textbox(Inches(0.85), y + Inches(0.55), Inches(11.6), Inches(0.55))
+        bf = bx.text_frame; bf.word_wrap = True
+        br = bf.paragraphs[0].add_run(); br.text = body
+        br.font.name = FONT_BODY; br.font.size = Pt(12); br.font.color.rgb = TEXT
+    add_text(slide,
+             "Why SSE? Tool calls take time. One request, many response events (progress + result). That's exactly SSE's shape.",
+             top=Inches(6.5), size=13, color=ACCENT, bold=True, align=PP_ALIGN.CENTER)
+    add_footer(slide, len(prs.slides.__iter__.__self__._sldIdLst))
+
+
+def slide_ai_external_trigger():
+    slide = add_blank_slide()
+    add_pattern_badge(slide, "AI SCENARIO", LLM)
+    add_title(slide, "AI scenario - external event triggers the agent", top=Inches(1.15))
+    add_subtitle(slide, "Order delivered -> LiveOrder sends a personalised thank-you SMS via an LLM.",
+                 top=Inches(1.95))
+    # Flow boxes
+    boxes = [
+        ("Order service",  Inches(0.6),  Inches(3.2),  WEBHOOK),
+        ("Post-delivery\nservice", Inches(3.0),  Inches(3.2),  SSE),
+        ("Queue",          Inches(5.7),  Inches(3.2),  ACCENT),
+        ("Agent\n(LLM call)", Inches(7.7),  Inches(3.2),  LLM),
+        ("Twilio API",     Inches(10.4), Inches(3.2),  WEBHOOK),
+    ]
+    for label, x, y, color in boxes:
+        b = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, x, y, Inches(2.2), Inches(1.0))
+        b.fill.solid(); b.fill.fore_color.rgb = BG_PANEL
+        b.line.color.rgb = color; b.line.width = Pt(1.5); b.shadow.inherit = False
+        tx = slide.shapes.add_textbox(x, y + Inches(0.2), Inches(2.2), Inches(0.7))
+        tf = tx.text_frame; tf.word_wrap = True
+        for i, line in enumerate(label.split("\n")):
+            p = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
+            p.alignment = PP_ALIGN.CENTER
+            r = p.add_run(); r.text = line
+            r.font.name = FONT_HEAD; r.font.size = Pt(13); r.font.bold = True; r.font.color.rgb = color
+    # Edge labels under the boxes
+    add_text(slide, "internal webhook  ->  verify+dedup+enqueue  ->  worker pulls  ->  LLM call (1-5s)  ->  send SMS",
+             top=Inches(4.5), size=12, color=MUTED, align=PP_ALIGN.CENTER, italic_via=True)
+    # Three places people get this wrong
+    add_text(slide, "Three places people get this wrong:",
+             top=Inches(5.1), size=14, color=ACCENT, bold=True)
+    add_text(slide,
+             "1.  Doing the LLM call inside the webhook handler. LLM takes 1-5s; sender times out at 5-10s; you get retries; you send duplicate SMS.\n"
+             "2.  No dedup. Same delivered event processed twice = customer gets 2 SMSes and Twilio bills you twice.\n"
+             "3.  No idempotency in the worker. Two workers race the same job. Wrap the LLM+send in a DB transaction that checks 'already sent?'.",
+             top=Inches(5.45), size=12, color=TEXT)
+    add_footer(slide, len(prs.slides.__iter__.__self__._sldIdLst))
+
+
+def slide_ai_five_questions():
+    slide = add_blank_slide()
+    add_pattern_badge(slide, "AI SCENARIO", LLM)
+    add_title(slide, "Five questions to ask when building an AI feature", top=Inches(1.15))
+    add_subtitle(slide, "Walk through these in order. The answers pick the pattern for you.",
+                 top=Inches(1.95))
+    qs = [
+        ("Where does the trigger come from?",
+         "User action -> REST / SSE / WS    ·    External event -> WEBHOOK    ·    Time-based -> cron"),
+        ("Is the output stream-friendly?",
+         "Token text -> SSE    ·    Binary audio / video -> WEBSOCKET    ·    Single result <1s -> REST"),
+        ("Can the user interrupt mid-response?",
+         "Yes -> WEBSOCKET (need a client->server signal mid-stream)    ·    No -> SSE is enough"),
+        ("How long does the work take?",
+         "<2s REST    ·    2-30s SSE for progress    ·    30s-min: job + SSE + webhook on done    ·    Hours: webhook callback only"),
+        ("How many concurrent users?",
+         "<100 anything    ·    100-10K SSE sweet spot    ·    >10K pub-sub backbone, consider managed WS"),
+    ]
+    top = Inches(2.55); h = Inches(0.85); gap = Inches(0.1)
+    for i, (q, a) in enumerate(qs):
+        y = top + (h + gap) * i
+        card = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(0.6), y, Inches(12.13), h)
+        card.fill.solid(); card.fill.fore_color.rgb = BG_PANEL
+        card.line.color.rgb = BORDER; card.line.width = Pt(0.5); card.shadow.inherit = False
+        nx = slide.shapes.add_textbox(Inches(0.85), y + Inches(0.15), Inches(0.5), Inches(0.4))
+        nr = nx.text_frame.paragraphs[0].add_run(); nr.text = str(i + 1) + "."
+        nr.font.name = FONT_HEAD; nr.font.size = Pt(18); nr.font.bold = True; nr.font.color.rgb = LLM
+        qx = slide.shapes.add_textbox(Inches(1.45), y + Inches(0.15), Inches(11.0), Inches(0.35))
+        qr = qx.text_frame.paragraphs[0].add_run(); qr.text = q
+        qr.font.name = FONT_HEAD; qr.font.size = Pt(14); qr.font.bold = True; qr.font.color.rgb = ACCENT
+        ax = slide.shapes.add_textbox(Inches(1.45), y + Inches(0.5), Inches(11.0), Inches(0.4))
+        af = ax.text_frame; af.word_wrap = True
+        ar = af.paragraphs[0].add_run(); ar.text = a
+        ar.font.name = FONT_BODY; ar.font.size = Pt(12); ar.font.color.rgb = TEXT
+    add_footer(slide, len(prs.slides.__iter__.__self__._sldIdLst))
+
+
 # ---------------------------------------------------------------------------
 # Build the deck
 # ---------------------------------------------------------------------------
@@ -1318,18 +2420,26 @@ def main():
     slide_cover()
     slide_agenda()
     slide_cast()
+    slide_liveorder_feature_map()
     slide_http_problem()
+    slide_http_request_response_raw()
+    slide_stateless_concept()
     slide_status_codes()
     slide_stateless_table()
+    slide_http_versions()
     slide_four_patterns_intro()
     polling_section()
     webhook_section()
     sse_section()
     ws_section()
     decision_section()
+    slide_ai_why_different()
     slide_ai_long_task()
+    slide_ai_external_trigger()
     slide_ai_voice_agent()
+    slide_mcp_transports()
     composition_section()
+    slide_ai_five_questions()
     materials_section()
     slide_recap()
     slide_qa()

@@ -2,7 +2,7 @@
 
 A fully wired Postman collection covering every HTTP endpoint across the 7 examples and 2 projects in this workshop. Import once, click "Send" on any request, see the response.
 
-**Stats:** 8 folders, 44 requests, 18 collection variables.
+**Stats:** 9 folders, 53 requests, 22 collection variables.
 
 > **About the `pause()` between demos in the Python clients:** that's a feature of the *client scripts* (so a presenter can step through demos with Enter). It doesn't affect Postman at all - you're already in a click-Send-when-ready workflow.
 

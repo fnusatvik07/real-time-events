@@ -47,6 +47,11 @@
       "type": "string"
     },
     {
+      "key": "base_7000",
+      "value": "http://127.0.0.1:7000",
+      "type": "string"
+    },
+    {
       "key": "jwt_secret",
       "value": "demo-only-jwt-secret-do-not-use-in-prod-3f8a",
       "type": "string"
@@ -59,6 +64,21 @@
     {
       "key": "webhook_secret_p2",
       "value": "workshop-secret-do-not-use-in-prod",
+      "type": "string"
+    },
+    {
+      "key": "liveorder_webhook_secret",
+      "value": "liveorder-demo-whsec-7c2a",
+      "type": "string"
+    },
+    {
+      "key": "liveorder_order_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "liveorder_report_id",
+      "value": "",
       "type": "string"
     },
     {
@@ -1329,6 +1349,268 @@
               }
             }
           ]
+        }
+      ]
+    },
+    {
+      "name": "Project 3 - LiveOrder all-patterns app (port 7000)",
+      "description": "All four real-time patterns in a single coherent food-delivery mini-app: place an order (REST), Stripe-style payment (WEBHOOK), watch live status updates (SSE), chat with the driver (WEBSOCKET), get an AI food recommendation (SSE/LLM), generate a long revenue report (POLLING).\n\nStart the server first:\n\n    cd projects/project_3_liveorder && uvicorn server:app --port 7000\n\nBrowser UI at http://localhost:7000 - this collection lets you drive the backend manually.\n\nFor the WebSocket chat, use Postman's File -> New -> WebSocket Request:\n    ws://127.0.0.1:7000/api/chat/{{liveorder_order_id}}?role=customer\n    ws://127.0.0.1:7000/api/chat/{{liveorder_order_id}}?role=driver",
+      "item": [
+        {
+          "name": "GET /api/about",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_7000}}/api/about",
+              "host": [
+                "{{base_7000}}"
+              ],
+              "path": [
+                "api",
+                "about"
+              ]
+            },
+            "description": "Lists every endpoint grouped by pattern."
+          }
+        },
+        {
+          "name": "POST /api/orders  (place an order)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_7000}}/api/orders",
+              "host": [
+                "{{base_7000}}"
+              ],
+              "path": [
+                "api",
+                "orders"
+              ]
+            },
+            "description": "Creates an order in 'awaiting_payment' state. Saves the returned id into {{liveorder_order_id}} so the rest of this folder can reference it.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customer\": \"Raj\",\n  \"item\": \"Chicken Biryani\",\n  \"amount_inr\": 450\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var o = pm.response.json();",
+                  "pm.collectionVariables.set(\"liveorder_order_id\", o.id);",
+                  "console.log(\"saved liveorder_order_id =\", o.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /api/orders/{{liveorder_order_id}}  (snapshot)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_7000}}/api/orders/{{liveorder_order_id}}",
+              "host": [
+                "{{base_7000}}"
+              ],
+              "path": [
+                "api",
+                "orders",
+                "{{liveorder_order_id}}"
+              ]
+            },
+            "description": "One-shot snapshot - status, timeline so far."
+          }
+        },
+        {
+          "name": "GET /api/orders/{{liveorder_order_id}}/stream  (SSE)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "accept",
+                "value": "text/event-stream"
+              }
+            ],
+            "url": {
+              "raw": "{{base_7000}}/api/orders/{{liveorder_order_id}}/stream",
+              "host": [
+                "{{base_7000}}"
+              ],
+              "path": [
+                "api",
+                "orders",
+                "{{liveorder_order_id}}",
+                "stream"
+              ]
+            },
+            "description": "SSE stream. Send this, then fire the simulate-payment request in another tab and watch status events arrive (event: status), webhooks arrive (event: webhook), and chat messages arrive (event: chat) live in the response body."
+          }
+        },
+        {
+          "name": "POST /api/simulate/payment/{{liveorder_order_id}}  (fires Stripe webhook)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_7000}}/api/simulate/payment/{{liveorder_order_id}}",
+              "host": [
+                "{{base_7000}}"
+              ],
+              "path": [
+                "api",
+                "simulate",
+                "payment",
+                "{{liveorder_order_id}}"
+              ]
+            },
+            "description": "Server constructs a Stripe-shaped payment_intent.succeeded event, HMAC-signs it, POSTs to its own /webhooks/payment. The order transitions to 'paid' and the auto-advance state machine kicks in."
+          }
+        },
+        {
+          "name": "POST /webhooks/payment  (raw signed event)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "content-type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_7000}}/webhooks/payment",
+              "host": [
+                "{{base_7000}}"
+              ],
+              "path": [
+                "webhooks",
+                "payment"
+              ]
+            },
+            "description": "Same effect as /api/simulate/payment but you fire it yourself with a proper signature (pre-request script signs the body).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"evt_postman_p3_001\",\n  \"type\": \"payment_intent.succeeded\",\n  \"data\": {\n    \"object\": {\n      \"metadata\": {\n        \"order_id\": \"{{liveorder_order_id}}\"\n      }\n    }\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// Sign the body with project 3's webhook secret.",
+                  "var secret = pm.collectionVariables.get(\"liveorder_webhook_secret\");",
+                  "var body = pm.request.body && pm.request.body.raw ? pm.request.body.raw : \"\";",
+                  "var signature = CryptoJS.HmacSHA256(body, secret).toString();",
+                  "pm.request.headers.upsert({key: \"stripe-signature\", value: signature});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "POST /api/recommend  (SSE LLM stream)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "content-type",
+                "value": "application/json"
+              },
+              {
+                "key": "accept",
+                "value": "text/event-stream"
+              }
+            ],
+            "url": {
+              "raw": "{{base_7000}}/api/recommend",
+              "host": [
+                "{{base_7000}}"
+              ],
+              "path": [
+                "api",
+                "recommend"
+              ]
+            },
+            "description": "Real OpenAI gpt-4o-mini stream relayed through the backend as SSE events.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"prompt\": \"Suggest a quick spicy vegetarian dinner under 400 INR.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "POST /api/reports/revenue  (kick a long batch job)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_7000}}/api/reports/revenue",
+              "host": [
+                "{{base_7000}}"
+              ],
+              "path": [
+                "api",
+                "reports",
+                "revenue"
+              ]
+            },
+            "description": "Starts an ~8 second background job that aggregates today's orders into a revenue report. Returns a job id immediately. Stashes {{liveorder_report_id}} for the polling request below."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var j = pm.response.json();",
+                  "pm.collectionVariables.set(\"liveorder_report_id\", j.id);",
+                  "console.log(\"saved liveorder_report_id =\", j.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /api/reports/{{liveorder_report_id}}  (poll status)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_7000}}/api/reports/{{liveorder_report_id}}",
+              "host": [
+                "{{base_7000}}"
+              ],
+              "path": [
+                "api",
+                "reports",
+                "{{liveorder_report_id}}"
+              ]
+            },
+            "description": "Poll this every second. Status walks pending -> running -> done. When done, .result has the aggregated numbers."
+          }
         }
       ]
     }

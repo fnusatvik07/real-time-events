@@ -649,6 +649,109 @@ pm.request.headers.upsert({key: "x-signature", value: signature});
 # ---------------------------------------------------------------------------
 # Top-level collection
 # ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Folder: Project 3 - LiveOrder (port 7000)
+# ---------------------------------------------------------------------------
+folder_p3 = folder(
+    "Project 3 - LiveOrder all-patterns app (port 7000)",
+    "All four real-time patterns in a single coherent food-delivery mini-app: "
+    "place an order (REST), Stripe-style payment (WEBHOOK), watch live status "
+    "updates (SSE), chat with the driver (WEBSOCKET), get an AI food "
+    "recommendation (SSE/LLM), generate a long revenue report (POLLING).\n\n"
+    "Start the server first:\n\n    cd projects/project_3_liveorder && uvicorn server:app --port 7000\n\n"
+    "Browser UI at http://localhost:7000 - this collection lets you drive the "
+    "backend manually.\n\n"
+    "For the WebSocket chat, use Postman's File -> New -> WebSocket Request:\n"
+    "    ws://127.0.0.1:7000/api/chat/{{liveorder_order_id}}?role=customer\n"
+    "    ws://127.0.0.1:7000/api/chat/{{liveorder_order_id}}?role=driver",
+    [
+        named("GET /api/about",
+            req("GET", "{{base_7000}}/api/about",
+                description="Lists every endpoint grouped by pattern.")),
+
+        named("POST /api/orders  (place an order)",
+            req("POST", "{{base_7000}}/api/orders",
+                body={"customer": "Raj", "item": "Chicken Biryani", "amount_inr": 450},
+                description="Creates an order in 'awaiting_payment' state. Saves "
+                            "the returned id into {{liveorder_order_id}} so the rest "
+                            "of this folder can reference it.",
+                test_script="""
+var o = pm.response.json();
+pm.collectionVariables.set("liveorder_order_id", o.id);
+console.log("saved liveorder_order_id =", o.id);
+""")),
+
+        named("GET /api/orders/{{liveorder_order_id}}  (snapshot)",
+            req("GET", "{{base_7000}}/api/orders/{{liveorder_order_id}}",
+                description="One-shot snapshot - status, timeline so far.")),
+
+        named("GET /api/orders/{{liveorder_order_id}}/stream  (SSE)",
+            req("GET", "{{base_7000}}/api/orders/{{liveorder_order_id}}/stream",
+                headers=[("accept", "text/event-stream")],
+                description="SSE stream. Send this, then fire the simulate-payment "
+                            "request in another tab and watch status events arrive "
+                            "(event: status), webhooks arrive (event: webhook), and "
+                            "chat messages arrive (event: chat) live in the response body.")),
+
+        named("POST /api/simulate/payment/{{liveorder_order_id}}  (fires Stripe webhook)",
+            req("POST", "{{base_7000}}/api/simulate/payment/{{liveorder_order_id}}",
+                description="Server constructs a Stripe-shaped payment_intent.succeeded "
+                            "event, HMAC-signs it, POSTs to its own /webhooks/payment. "
+                            "The order transitions to 'paid' and the auto-advance "
+                            "state machine kicks in.")),
+
+        named("POST /webhooks/payment  (raw signed event)",
+            req("POST", "{{base_7000}}/webhooks/payment",
+                headers=[("content-type", "application/json")],
+                pre_script="""
+// Sign the body with project 3's webhook secret.
+var secret = pm.collectionVariables.get("liveorder_webhook_secret");
+var body = pm.request.body && pm.request.body.raw ? pm.request.body.raw : "";
+var signature = CryptoJS.HmacSHA256(body, secret).toString();
+pm.request.headers.upsert({key: "stripe-signature", value: signature});
+""",
+                body={
+                    "id": "evt_postman_p3_001",
+                    "type": "payment_intent.succeeded",
+                    "data": {
+                        "object": {
+                            "metadata": {"order_id": "{{liveorder_order_id}}"},
+                        },
+                    },
+                },
+                description="Same effect as /api/simulate/payment but you fire it "
+                            "yourself with a proper signature (pre-request script "
+                            "signs the body).")),
+
+        named("POST /api/recommend  (SSE LLM stream)",
+            req("POST", "{{base_7000}}/api/recommend",
+                headers=[
+                    ("content-type", "application/json"),
+                    ("accept", "text/event-stream"),
+                ],
+                body={"prompt": "Suggest a quick spicy vegetarian dinner under 400 INR."},
+                description="Real OpenAI gpt-4o-mini stream relayed through the "
+                            "backend as SSE events.")),
+
+        named("POST /api/reports/revenue  (kick a long batch job)",
+            req("POST", "{{base_7000}}/api/reports/revenue",
+                description="Starts an ~8 second background job that aggregates today's "
+                            "orders into a revenue report. Returns a job id immediately. "
+                            "Stashes {{liveorder_report_id}} for the polling request below.",
+                test_script="""
+var j = pm.response.json();
+pm.collectionVariables.set("liveorder_report_id", j.id);
+console.log("saved liveorder_report_id =", j.id);
+""")),
+
+        named("GET /api/reports/{{liveorder_report_id}}  (poll status)",
+            req("GET", "{{base_7000}}/api/reports/{{liveorder_report_id}}",
+                description="Poll this every second. Status walks pending -> running "
+                            "-> done. When done, .result has the aggregated numbers.")),
+    ],
+)
+
+
 collection = {
     "info": {
         "_postman_id": "real-time-workshop",
@@ -692,9 +795,13 @@ collection = {
         {"key": "base_8106", "value": "http://127.0.0.1:8106", "type": "string"},
         {"key": "base_8000", "value": "http://127.0.0.1:8000", "type": "string"},
         {"key": "base_9000", "value": "http://127.0.0.1:9000", "type": "string"},
+        {"key": "base_7000", "value": "http://127.0.0.1:7000", "type": "string"},
         {"key": "jwt_secret", "value": "demo-only-jwt-secret-do-not-use-in-prod-3f8a", "type": "string"},
         {"key": "webhook_secret", "value": "whsec_demo_workshop_secret", "type": "string"},
         {"key": "webhook_secret_p2", "value": "workshop-secret-do-not-use-in-prod", "type": "string"},
+        {"key": "liveorder_webhook_secret", "value": "liveorder-demo-whsec-7c2a", "type": "string"},
+        {"key": "liveorder_order_id", "value": "", "type": "string"},
+        {"key": "liveorder_report_id", "value": "", "type": "string"},
         {"key": "arjun_jwt", "value": "", "type": "string"},
         {"key": "tampered_jwt", "value": "", "type": "string"},
         {"key": "event_id", "value": "", "type": "string"},
@@ -706,7 +813,7 @@ collection = {
     "item": [
         folder_01, folder_02, folder_03, folder_04,
         folder_05, folder_06,
-        folder_p1, folder_p2,
+        folder_p1, folder_p2, folder_p3,
     ],
 }
 

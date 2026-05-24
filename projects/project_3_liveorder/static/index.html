@@ -1,0 +1,632 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>LiveOrder - all 4 real-time patterns in one app</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    :root {
+      --bg:    #0b0e14;
+      --panel: #141923;
+      --panel-2: #1c2230;
+      --border:#262d3a;
+      --text:  #e5e7eb;
+      --muted: #8e95a3;
+      --dim:   #5d6473;
+      --accent: #67e8f9;        /* bright cyan to match terminal theme */
+      --good:   #4ade80;
+      --warn:   #fbbf24;
+      --bad:    #f87171;
+      --sse:     #4ade80;       /* green */
+      --ws:      #60a5fa;       /* blue */
+      --webhook: #fb7185;       /* red/pink for danger-feel (external) */
+      --polling: #fbbf24;       /* amber */
+      --llm:     #c084fc;       /* purple */
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; padding: 24px;
+      font: 14px/1.5 ui-sans-serif, system-ui, sans-serif;
+      background: var(--bg); color: var(--text);
+    }
+    header {
+      margin-bottom: 24px;
+    }
+    h1 { font-size: 22px; margin: 0 0 6px; letter-spacing: -0.01em; }
+    .sub { color: var(--muted); font-size: 13px; }
+    .legend {
+      display: flex; gap: 12px; flex-wrap: wrap; margin-top: 12px; font-size: 12px;
+    }
+    .legend > span { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); }
+    .legend .dot { width: 8px; height: 8px; border-radius: 50%; }
+    .grid {
+      display: grid; gap: 18px;
+      grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+    }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      display: flex; flex-direction: column;
+      min-height: 280px;
+    }
+    .card h2 {
+      margin: 0 0 4px; font-size: 15px; font-weight: 600;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .badge {
+      font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 4px;
+      letter-spacing: 0.05em; text-transform: uppercase;
+    }
+    .badge.sse     { background: rgba(74,222,128,0.15);  color: var(--sse); }
+    .badge.ws      { background: rgba(96,165,250,0.15);  color: var(--ws); }
+    .badge.webhook { background: rgba(251,113,133,0.15); color: var(--webhook); }
+    .badge.polling { background: rgba(251,191,36,0.15);  color: var(--polling); }
+    .badge.llm     { background: rgba(192,132,252,0.15); color: var(--llm); }
+    .desc { color: var(--muted); font-size: 12px; margin: 0 0 12px; }
+    button {
+      background: var(--accent); color: #052528; border: 0; border-radius: 6px;
+      padding: 7px 14px; font-weight: 600; font-size: 13px; cursor: pointer;
+      transition: opacity 0.1s;
+    }
+    button:hover { opacity: 0.9; }
+    button:disabled { opacity: 0.4; cursor: not-allowed; }
+    button.ghost {
+      background: transparent; color: var(--muted);
+      border: 1px solid var(--border);
+    }
+    button.warn { background: var(--warn); color: #1a1306; }
+    button.webhook { background: var(--webhook); color: #2a0a10; }
+    input[type=text], textarea {
+      width: 100%; background: var(--panel-2); border: 1px solid var(--border);
+      color: var(--text); border-radius: 6px; padding: 7px 9px;
+      font-family: inherit; font-size: 13px;
+    }
+    input[type=text]:focus, textarea:focus {
+      outline: none; border-color: var(--accent);
+    }
+    .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .row + .row { margin-top: 8px; }
+    .pill {
+      font-size: 11px; padding: 2px 7px; border-radius: 4px; font-weight: 600;
+      background: var(--panel-2); color: var(--muted);
+    }
+    .pill.live  { background: rgba(74,222,128,0.15); color: var(--good); }
+    .pill.warn  { background: rgba(251,191,36,0.15); color: var(--warn); }
+    .pill.bad   { background: rgba(248,113,113,0.15); color: var(--bad); }
+
+    /* Timeline of order status */
+    .timeline { margin-top: 10px; flex: 1; overflow-y: auto; max-height: 280px; }
+    .tl-row {
+      display: flex; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--border);
+      font-size: 12px;
+    }
+    .tl-row:last-child { border-bottom: 0; }
+    .tl-row .dot {
+      width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 6px;
+      background: var(--accent);
+    }
+    .tl-row.kind-status .dot { background: var(--sse); }
+    .tl-row.kind-webhook .dot { background: var(--webhook); }
+    .tl-row.kind-chat .dot { background: var(--ws); }
+    .tl-row .body { flex: 1; }
+    .tl-row .ts { color: var(--dim); font-size: 11px; }
+    .tl-row .kind { color: var(--muted); font-size: 11px; text-transform: uppercase; }
+
+    /* Chat */
+    .chat-feed {
+      flex: 1; overflow-y: auto; max-height: 240px; padding: 4px 0;
+      font-size: 13px;
+    }
+    .chat-msg { padding: 4px 0; }
+    .chat-msg .who { font-weight: 700; margin-right: 6px; }
+    .chat-msg.from-customer .who { color: var(--sse); }
+    .chat-msg.from-driver   .who { color: var(--ws); }
+    .chat-msg .ts { color: var(--dim); font-size: 11px; margin-left: 6px; }
+    .chat-presence { color: var(--muted); font-size: 12px; font-style: italic; padding: 2px 0; }
+
+    /* AI agent response */
+    .agent-out {
+      margin-top: 10px; padding: 10px;
+      background: var(--panel-2); border-radius: 6px; min-height: 80px;
+      font-size: 13px; line-height: 1.55; white-space: pre-wrap;
+      color: var(--text);
+    }
+    .agent-meta { color: var(--muted); font-size: 11px; margin-top: 6px; }
+
+    /* Report */
+    .report-out {
+      margin-top: 10px; padding: 10px;
+      background: var(--panel-2); border-radius: 6px;
+      font-size: 12px; font-family: ui-monospace, monospace;
+      color: var(--text);
+    }
+    .progress {
+      height: 4px; background: var(--panel-2); border-radius: 2px; overflow: hidden;
+      margin-top: 8px;
+    }
+    .progress > div {
+      height: 100%; background: var(--polling); width: 0%;
+      transition: width 0.3s ease;
+    }
+
+    .empty { color: var(--dim); font-size: 12px; font-style: italic; padding: 8px 0; }
+
+    footer {
+      margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border);
+      color: var(--muted); font-size: 12px;
+    }
+    code { background: var(--panel-2); padding: 1px 5px; border-radius: 3px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>LiveOrder - all 4 real-time patterns in one app</h1>
+  <div class="sub">
+    A mini food-delivery app. Place an order, simulate Stripe paying for it, watch
+    it auto-progress to delivery, chat with the driver, ask the AI recommender what
+    to order next, generate a revenue report. Each pattern below is labeled with
+    which real-time approach delivers it.
+  </div>
+  <div class="legend">
+    <span><span class="dot" style="background:var(--sse)"></span> SSE</span>
+    <span><span class="dot" style="background:var(--ws)"></span> WebSocket</span>
+    <span><span class="dot" style="background:var(--webhook)"></span> Webhook</span>
+    <span><span class="dot" style="background:var(--polling)"></span> Polling</span>
+    <span><span class="dot" style="background:var(--llm)"></span> SSE (LLM token stream)</span>
+  </div>
+</header>
+
+<div class="grid">
+
+  <!-- ===================================================================== -->
+  <!--   Order tracking - SSE                                                -->
+  <!-- ===================================================================== -->
+  <div class="card">
+    <h2>Order <span class="badge sse">SSE</span></h2>
+    <p class="desc">
+      Server pushes status changes (and webhooks received, and chat messages) to
+      this card over one SSE connection per order.
+    </p>
+    <div class="row">
+      <input id="customer" type="text" value="Raj" style="max-width: 110px;" placeholder="customer" />
+      <input id="item" type="text" value="Chicken Biryani" placeholder="item" />
+      <input id="amount" type="text" value="450" style="max-width: 80px;" placeholder="INR" />
+      <button id="place-btn" onclick="placeOrder()">Place order</button>
+    </div>
+    <div class="row" style="margin-top: 8px;">
+      <span class="pill" id="order-id">no order yet</span>
+      <span class="pill" id="order-status">-</span>
+      <span class="pill" id="sse-conn">SSE: idle</span>
+    </div>
+    <div class="timeline" id="timeline">
+      <div class="empty">Place an order to see live updates here.</div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!--   Webhook simulator                                                   -->
+  <!-- ===================================================================== -->
+  <div class="card">
+    <h2>Payment <span class="badge webhook">WEBHOOK</span></h2>
+    <p class="desc">
+      Simulates Stripe POSTing a signed <code>payment_intent.succeeded</code> event
+      to our <code>/webhooks/payment</code>. HMAC verified, then dispatched to the
+      order's state machine.
+    </p>
+    <div class="row">
+      <button class="webhook" id="simulate-pay" onclick="simulatePayment()" disabled>
+        Simulate Stripe payment for current order
+      </button>
+    </div>
+    <div class="agent-meta" style="margin-top: 8px;">
+      The HMAC-signed webhook arrives, signature is verified, then this triggers
+      the order's auto-advance through <code>paid -&gt; cooking -&gt; out for delivery -&gt; delivered</code>.
+    </div>
+    <div id="webhook-log" style="margin-top: 12px; font-size: 12px; font-family: ui-monospace, monospace;">
+      <div class="empty">No webhooks received yet.</div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!--   Driver chat - WebSocket                                             -->
+  <!-- ===================================================================== -->
+  <div class="card">
+    <h2>Driver chat <span class="badge ws">WebSocket</span></h2>
+    <p class="desc">
+      Bidirectional chat tied to the order. Open this page in two windows (one as
+      customer, one as driver) to see live two-way messages over a single TCP
+      connection.
+    </p>
+    <div class="row">
+      <select id="chat-role" style="background: var(--panel-2); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 7px;">
+        <option value="customer">As customer</option>
+        <option value="driver">As driver</option>
+      </select>
+      <button id="chat-connect" onclick="connectChat()" disabled>Connect</button>
+      <span class="pill" id="chat-conn">disconnected</span>
+    </div>
+    <div class="chat-feed" id="chat-feed">
+      <div class="empty">Connect after placing an order.</div>
+    </div>
+    <div class="row">
+      <input id="chat-input" type="text" placeholder="Type a message and press Enter" onkeydown="if(event.key==='Enter') sendChat()" disabled />
+      <button onclick="sendChat()" id="chat-send" disabled>Send</button>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!--   AI recommender - SSE LLM streaming                                  -->
+  <!-- ===================================================================== -->
+  <div class="card">
+    <h2>Food recommender <span class="badge llm">SSE / LLM</span></h2>
+    <p class="desc">
+      Streams a real OpenAI <code>gpt-4o-mini</code> response over SSE -
+      backend relays each token to the browser as it's generated.
+    </p>
+    <div class="row">
+      <input id="recommend-q" type="text"
+             value="Suggest a quick spicy vegetarian dinner under 400 INR."
+             placeholder="Ask the recommender..." />
+      <button onclick="askRecommender()" id="ask-btn">Ask</button>
+    </div>
+    <div class="agent-out" id="agent-out">
+      <span class="empty">Ask a question to stream a response here.</span>
+    </div>
+    <div class="agent-meta" id="agent-meta"></div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!--   Revenue report - polling                                            -->
+  <!-- ===================================================================== -->
+  <div class="card">
+    <h2>Revenue report <span class="badge polling">POLLING</span></h2>
+    <p class="desc">
+      Long-running background job. UI POSTs to kick it off, then polls
+      <code>GET /api/reports/{id}</code> every second until <code>status == done</code>.
+      This is the right pattern for slow batch work where push is overkill.
+    </p>
+    <div class="row">
+      <button onclick="kickReport()" id="report-btn">Generate today's revenue report</button>
+      <span class="pill" id="report-status">idle</span>
+    </div>
+    <div class="progress"><div id="report-progress"></div></div>
+    <div class="report-out" id="report-out">
+      <span class="empty" style="font-family: ui-sans-serif;">No report yet.</span>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  <strong>What to demo live:</strong>
+  Place an order -&gt; click Simulate payment (webhook triggers the state machine) -&gt;
+  watch the SSE timeline auto-advance to delivered -&gt; open Driver chat in a second
+  tab as the driver -&gt; chat back and forth -&gt; ask the AI recommender something -&gt;
+  finally generate the revenue report and watch the polling status pill cycle.
+  Inspect everything in DevTools Network: each card uses a distinctly different
+  request shape.
+</footer>
+
+<script>
+//==========================================================================
+//  State + helpers
+//==========================================================================
+const state = {
+  orderId:  null,
+  sse:      null,
+  ws:       null,
+  reportId: null,
+  pollHandle: null,
+};
+
+function $(id) { return document.getElementById(id); }
+function fmtTime(ts) {
+  const d = new Date(ts * 1000);
+  return d.toLocaleTimeString();
+}
+function setStatus(id, text, cls) {
+  const el = $(id);
+  el.textContent = text;
+  el.className = "pill" + (cls ? " " + cls : "");
+}
+
+//==========================================================================
+//  Order + SSE
+//==========================================================================
+async function placeOrder() {
+  $("place-btn").disabled = true;
+  $("place-btn").textContent = "Placing...";
+
+  const body = {
+    customer: $("customer").value || "Raj",
+    item:     $("item").value || "Chicken Biryani",
+    amount_inr: parseInt($("amount").value, 10) || 450,
+  };
+  const r = await fetch("/api/orders", {
+    method: "POST",
+    headers: {"content-type": "application/json"},
+    body: JSON.stringify(body),
+  });
+  const o = await r.json();
+  state.orderId = o.id;
+
+  $("order-id").textContent = o.id;
+  $("order-status").textContent = o.status_label || o.status;
+  $("simulate-pay").disabled = false;
+  $("chat-connect").disabled = false;
+
+  // Clear the timeline of any previous order
+  $("timeline").innerHTML = "";
+
+  openOrderStream(o.id);
+
+  // Reset button
+  $("place-btn").disabled = false;
+  $("place-btn").textContent = "Place order";
+}
+
+function openOrderStream(orderId) {
+  if (state.sse) state.sse.close();
+  setStatus("sse-conn", "SSE: connecting...", "warn");
+  state.sse = new EventSource(`/api/orders/${orderId}/stream`);
+
+  state.sse.addEventListener("open", () => {
+    setStatus("sse-conn", "SSE: live", "live");
+  });
+
+  state.sse.addEventListener("snapshot", (e) => {
+    const o = JSON.parse(e.data);
+    $("order-status").textContent = o.status_label || o.status;
+    // render existing timeline entries
+    for (const t of (o.timeline || [])) {
+      appendTimeline({kind: "status", ...t});
+    }
+  });
+
+  state.sse.addEventListener("status", (e) => {
+    const evt = JSON.parse(e.data);
+    $("order-status").textContent = evt.label || evt.status;
+    if (evt.status === "delivered") setStatus("order-status", evt.label, "live");
+    appendTimeline(evt);
+  });
+
+  state.sse.addEventListener("webhook", (e) => {
+    const evt = JSON.parse(e.data);
+    appendTimeline({...evt, kind: "webhook"});
+    appendWebhookLog(evt);
+  });
+
+  state.sse.addEventListener("chat", (e) => {
+    // chat msgs are surfaced in both timeline and chat feed
+    const evt = JSON.parse(e.data);
+    appendTimeline({...evt, kind: "chat", label: `${evt.from}: ${evt.text}`, at: evt.ts});
+  });
+
+  state.sse.onerror = () => {
+    setStatus("sse-conn", "SSE: reconnecting", "warn");
+  };
+}
+
+function appendTimeline(evt) {
+  const el = $("timeline");
+  // remove the empty hint
+  if (el.querySelector(".empty")) el.innerHTML = "";
+
+  const row = document.createElement("div");
+  row.className = "tl-row kind-" + (evt.kind || "status");
+  const at = evt.at || evt.received_at || (Date.now() / 1000);
+  let text = evt.label || evt.note || "";
+  if (evt.kind === "webhook") {
+    text = `${evt.type}  (event id ${evt.event_id || "?"})`;
+  } else if (evt.kind === "chat") {
+    text = `${evt.from}: ${evt.text}`;
+  }
+  row.innerHTML = `
+    <div class="dot"></div>
+    <div class="body">
+      <div><span class="kind">${(evt.kind || "status")}</span> &middot; <span class="ts">${fmtTime(at)}</span></div>
+      <div>${escapeHtml(text)}</div>
+      ${evt.note && evt.kind === "status" ? `<div style="color: var(--muted); font-size: 11px;">${escapeHtml(evt.note)}</div>` : ""}
+    </div>
+  `;
+  el.prepend(row);   // newest first
+}
+
+function appendWebhookLog(evt) {
+  const el = $("webhook-log");
+  if (el.querySelector(".empty")) el.innerHTML = "";
+  const row = document.createElement("div");
+  row.style.padding = "4px 0";
+  row.style.borderBottom = "1px solid var(--border)";
+  row.innerHTML = `
+    <span style="color: var(--webhook);">webhook</span>
+    <span style="color: var(--muted);">${fmtTime(evt.received_at)}</span>
+    &middot;
+    <strong>${escapeHtml(evt.type)}</strong>
+    <span style="color: var(--muted);">${escapeHtml(evt.event_id || "")}</span>
+  `;
+  el.prepend(row);
+}
+
+//==========================================================================
+//  Webhook simulator
+//==========================================================================
+async function simulatePayment() {
+  if (!state.orderId) return;
+  $("simulate-pay").disabled = true;
+  const r = await fetch(`/api/simulate/payment/${state.orderId}`, {method: "POST"});
+  const data = await r.json();
+  // The actual visible side-effects (webhook log, status change) flow back via SSE.
+  setTimeout(() => { $("simulate-pay").disabled = false; }, 1000);
+}
+
+//==========================================================================
+//  Chat (WebSocket)
+//==========================================================================
+function connectChat() {
+  if (!state.orderId) return;
+  if (state.ws) state.ws.close();
+
+  const role = $("chat-role").value;
+  const proto = location.protocol === "https:" ? "wss" : "ws";
+  const url = `${proto}://${location.host}/api/chat/${state.orderId}?role=${role}`;
+  state.ws = new WebSocket(url);
+  setStatus("chat-conn", "connecting...", "warn");
+
+  state.ws.onopen = () => {
+    setStatus("chat-conn", "connected as " + role, "live");
+    $("chat-input").disabled = false;
+    $("chat-send").disabled = false;
+    $("chat-input").focus();
+    $("chat-feed").innerHTML = "";
+  };
+  state.ws.onclose = () => {
+    setStatus("chat-conn", "closed", "bad");
+    $("chat-input").disabled = true;
+    $("chat-send").disabled = true;
+  };
+  state.ws.onmessage = (e) => {
+    const msg = JSON.parse(e.data);
+    appendChatMsg(msg);
+  };
+}
+
+function appendChatMsg(msg) {
+  const feed = $("chat-feed");
+  if (feed.querySelector(".empty")) feed.innerHTML = "";
+  if (msg.type === "presence") {
+    const row = document.createElement("div");
+    row.className = "chat-presence";
+    row.textContent = "* " + msg.text;
+    feed.appendChild(row);
+  } else if (msg.type === "system") {
+    const row = document.createElement("div");
+    row.className = "chat-presence";
+    row.textContent = msg.text;
+    feed.appendChild(row);
+  } else if (msg.type === "msg") {
+    const row = document.createElement("div");
+    row.className = "chat-msg from-" + msg.from;
+    row.innerHTML = `<span class="who">${escapeHtml(msg.from)}</span>${escapeHtml(msg.text)}<span class="ts">${fmtTime(msg.ts)}</span>`;
+    feed.appendChild(row);
+  }
+  feed.scrollTop = feed.scrollHeight;
+}
+
+function sendChat() {
+  const input = $("chat-input");
+  const text = input.value.trim();
+  if (!text || !state.ws) return;
+  state.ws.send(JSON.stringify({type: "msg", text}));
+  input.value = "";
+}
+
+//==========================================================================
+//  AI recommender (SSE LLM stream)
+//==========================================================================
+async function askRecommender() {
+  const q = $("recommend-q").value.trim();
+  if (!q) return;
+  $("ask-btn").disabled = true;
+  $("agent-out").innerHTML = "";
+  $("agent-meta").textContent = "";
+
+  const t0 = performance.now();
+  let firstToken = null;
+  let tokens = 0;
+
+  const res = await fetch("/api/recommend", {
+    method: "POST",
+    headers: {"content-type": "application/json", "accept": "text/event-stream"},
+    body: JSON.stringify({prompt: q}),
+  });
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buf = "";
+
+  while (true) {
+    const {value, done} = await reader.read();
+    if (done) break;
+    buf += decoder.decode(value, {stream: true});
+    let idx;
+    while ((idx = buf.indexOf("\n\n")) !== -1) {
+      const raw = buf.slice(0, idx);
+      buf = buf.slice(idx + 2);
+      const evt = parseSSE(raw);
+      if (evt.event === "token") {
+        if (firstToken === null) firstToken = performance.now() - t0;
+        tokens++;
+        const payload = JSON.parse(evt.data);
+        $("agent-out").textContent += payload.text;
+      } else if (evt.event === "error") {
+        const payload = JSON.parse(evt.data);
+        $("agent-out").innerHTML = `<span style="color: var(--bad);">Error: ${escapeHtml(payload.message)}</span>`;
+      }
+    }
+  }
+
+  const total = performance.now() - t0;
+  $("agent-meta").textContent =
+    `first token ${firstToken ? Math.round(firstToken) : 0} ms ` +
+    `· total ${(total/1000).toFixed(2)} s ` +
+    `· ${tokens} tokens`;
+  $("ask-btn").disabled = false;
+}
+
+function parseSSE(raw) {
+  const out = {event: "message", data: ""};
+  for (const line of raw.split("\n")) {
+    if (line.startsWith("event:")) out.event = line.slice(6).trim();
+    else if (line.startsWith("data:")) out.data += line.slice(5).trimStart();
+  }
+  return out;
+}
+
+//==========================================================================
+//  Revenue report (polling)
+//==========================================================================
+async function kickReport() {
+  $("report-btn").disabled = true;
+  setStatus("report-status", "kicking off...", "warn");
+  $("report-out").innerHTML = "";
+  $("report-progress").style.width = "0%";
+
+  const r = await fetch("/api/reports/revenue", {method: "POST"});
+  const job = await r.json();
+  state.reportId = job.id;
+  setStatus("report-status", job.status, "warn");
+
+  // Poll every 1s until done.
+  let polls = 0;
+  if (state.pollHandle) clearInterval(state.pollHandle);
+  state.pollHandle = setInterval(async () => {
+    polls++;
+    const r = await fetch(`/api/reports/${state.reportId}`);
+    const rep = await r.json();
+    setStatus("report-status", `${rep.status} · poll #${polls} · ${rep.elapsed_ms}ms elapsed`, rep.status === "done" ? "live" : "warn");
+    // Pretend progress: ramp 0% -> 90% over 8s, then 100% on done.
+    if (rep.status === "done") {
+      $("report-progress").style.width = "100%";
+      clearInterval(state.pollHandle);
+      state.pollHandle = null;
+      $("report-out").textContent = JSON.stringify(rep.result, null, 2);
+      $("report-btn").disabled = false;
+    } else {
+      const pct = Math.min(90, polls * 12);
+      $("report-progress").style.width = pct + "%";
+    }
+  }, 1000);
+}
+
+function escapeHtml(s) {
+  return String(s)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+}
+</script>
+
+</body>
+</html>

@@ -323,6 +323,69 @@ if grep -q "event: payment" "$LOGS/p2_sse.out"; then ok "SSE pushed live events 
 stop_all_servers
 
 # ============================================================
+# Project 3 - LiveOrder (all 4 patterns in one app)
+# ============================================================
+hdr "Project 3 - LiveOrder  (port 7000 - all 4 patterns in one app)"
+if start_server "$ROOT/projects/project_3_liveorder" "server" 7000 "$LOGS/p3.log"; then
+    ok "project 3 server came up on :7000"
+else
+    fail "project 3 server did not start (see $LOGS/p3.log)"
+fi
+assert_status "index page" 200 "http://127.0.0.1:7000/"
+ABOUT3=$(curl -s http://127.0.0.1:7000/api/about)
+assert_contains "/api/about lists all patterns" "$ABOUT3" "webhook" "sse" "websocket" "polling"
+
+# Place an order
+ORDER=$(curl -s -X POST http://127.0.0.1:7000/api/orders \
+    -H "content-type: application/json" \
+    -d '{"customer":"Raj","item":"Biryani","amount_inr":450}')
+ORDER_ID=$($PYTHON -c "import sys,json; print(json.load(sys.stdin)['id'])" <<<"$ORDER")
+assert_contains "POST /api/orders returns id + awaiting_payment" "$ORDER" '"id":"ord_' '"status":"awaiting_payment"'
+
+# Simulate the Stripe payment webhook
+SIM=$(curl -s -X POST "http://127.0.0.1:7000/api/simulate/payment/$ORDER_ID")
+assert_contains "webhook simulator round-trip 200" "$SIM" '"received_by_webhook":200' '"sent":true'
+
+# Order should now be paid (state machine fired immediately on the webhook)
+sleep 0.5
+SNAP=$(curl -s "http://127.0.0.1:7000/api/orders/$ORDER_ID")
+assert_contains "webhook transitioned the order to 'paid'" "$SNAP" '"status":"paid"'
+
+# Kick a revenue report and confirm we can poll it
+KICK=$(curl -s -X POST http://127.0.0.1:7000/api/reports/revenue)
+REPORT_ID=$($PYTHON -c "import sys,json; print(json.load(sys.stdin)['id'])" <<<"$KICK")
+assert_contains "report kicked off (pending)" "$KICK" '"status":"pending"' '"id":"rep_'
+sleep 0.3
+POLL1=$(curl -s "http://127.0.0.1:7000/api/reports/$REPORT_ID")
+assert_contains "report status pollable" "$POLL1" '"status":' '"elapsed_ms":'
+
+# AI recommender SSE (smoke check)
+RECCO=$(curl -s -N -X POST http://127.0.0.1:7000/api/recommend \
+    -H "content-type: application/json" \
+    -d '{"prompt":"name one Indian dessert in two words"}' --max-time 12 | head -10)
+assert_contains "/api/recommend streams real LLM tokens" "$RECCO" "event: token"
+
+# WebSocket chat smoke test
+WS3_OUT=$($PYTHON - <<PY
+import asyncio, websockets, json
+async def go():
+    async with websockets.connect('ws://127.0.0.1:7000/api/chat/$ORDER_ID?role=customer') as ws:
+        # first message from server should be the system "connected as" hello
+        raw = await asyncio.wait_for(ws.recv(), timeout=5)
+        m = json.loads(raw)
+        print('system:', m.get('type'), m.get('text', '')[:40])
+        await ws.send(json.dumps({'type': 'msg', 'text': 'hi from qa'}))
+        # echo of our own broadcast
+        raw = await asyncio.wait_for(ws.recv(), timeout=5)
+        m = json.loads(raw)
+        print('echo:', m.get('type'), m.get('text', ''))
+asyncio.run(go())
+PY
+2>&1)
+assert_contains "chat WS accepts + echoes" "$WS3_OUT" "system:" "echo: msg hi from qa"
+stop_all_servers
+
+# ============================================================
 # Summary
 # ============================================================
 echo

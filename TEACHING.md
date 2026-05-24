@@ -10,7 +10,10 @@ You have **two layers of runnable material**:
 
 1. **Examples** (`examples/01_..` through `examples/07_..`) - seven tiny self-contained folders, one per topic. Each is **30-150 lines of code** with a `server.py` and `client.py` (or `receiver.py` and `sender.py` for webhooks). The point is "show me the pattern in the smallest possible code."
 
-2. **Projects** (`projects/project_1_..` and `projects/project_2_..`) - two full apps with HTML UIs that **combine multiple patterns** so the class can SEE the difference in the browser, not just in logs.
+2. **Projects** (`projects/project_1_..`, `_2_..`, `_3_..`) - three full apps with HTML UIs:
+   - **Project 1**: same chat 3 ways (polling vs SSE vs WS side-by-side comparison)
+   - **Project 2**: webhook → backend → live dashboard pipeline
+   - **Project 3 (capstone)**: all 4 patterns composed in one realistic food-delivery app
 
 **Recommended teaching arc:**
 
@@ -404,6 +407,46 @@ Browser: http://localhost:8000
 - "Same backend code. Same OpenAI call. Three patterns. The UX difference is dramatic."
 - "WebSocket gives you interrupt for free. SSE can't."
 - "But if you don't need interrupt, SSE is simpler and cheaper."
+
+---
+
+## PROJECT 3 - LiveOrder mini-app (`projects/project_3_liveorder`)
+
+**Purpose:** the capstone. All four patterns coexisting in one realistic app, each used where it actually fits.
+
+**What it has (one page, five cards):**
+
+| Card | Pattern | What it does |
+|------|---------|---------------|
+| Order tracking | **SSE** | Live status updates from `awaiting_payment` → `paid` → `cooking` → ... → `delivered` |
+| Payment | **Webhook** | Click button → server fires a HMAC-signed Stripe-style event at its own `/webhooks/payment` |
+| Driver chat | **WebSocket** | Two-way chat tied to the order; switch role dropdown to chat as the other party |
+| Food recommender | **SSE / LLM** | Real OpenAI `gpt-4o-mini` response streamed token-by-token |
+| Revenue report | **Polling** | Long batch job (~8s); UI polls `/api/reports/{id}` until done |
+
+**Live demo (90 seconds):**
+
+Terminal:
+```bash
+cd projects/project_3_liveorder && uvicorn server:app --reload --port 7000
+```
+
+Browser at http://localhost:7000.
+
+1. Click **Place order** with defaults. Status card shows "Waiting for payment".
+2. Click **Simulate Stripe payment**. Webhook fires; status auto-advances through cooking → delivered (each transition is one SSE event).
+3. Switch role dropdown to "As driver", click **Connect**, send messages back and forth. Open this page in a second tab as customer too.
+4. Type an AI question, click **Ask**. Response streams in word-by-word.
+5. Click **Generate revenue report**. Status pill shows `pending → running → done`.
+6. Open DevTools Network. Each card has a visibly different request shape — make this the closing point.
+
+**Key talking points:**
+
+- Same backend serves REST + SSE + WebSocket + Webhook routes — no separate services needed.
+- The webhook is what triggers the state machine; SSE is what surfaces it. Two patterns, one event flow.
+- The chat WebSocket is **independent** of the order SSE — different concerns, different transports.
+- The recommender is "SSE all the way" — server proxies OpenAI's SSE response to the browser's SSE consumer.
+- The report uses polling because no one needs sub-second latency on a batch number.
 
 ---
 
